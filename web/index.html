@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ArchiHub — 工程圖面的 GitHub</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 
@@ -36,7 +36,8 @@
 
     <div class="pane-mid">
       <div class="viewer-bar" id="dwg-tabs"></div>
-      <div class="viewer-wrap"><div class="sheet" id="sheet"></div></div>
+      <div class="hint-bar" id="hint-bar">🖐 拖曳雲朵標記可修正位置——每次修正都會記錄為訓練資料</div>
+      <div class="viewer-wrap"><div class="sheet" id="sheet"><div class="canvas-stack" id="canvas-stack"></div></div></div>
       <div class="history">
         <div class="hist-title">🕘 版本歷史（進版流水號）<span style="font-weight:400;font-family:var(--mono);font-size:11px;">≈ commit log</span></div>
         <div id="hist-list"></div>
@@ -111,6 +112,13 @@
 </div>
 
 <div id="toasts"></div>
-<script src="app.js"></script>
+<script type="module">
+  // 離線打包的 pdf.js（web/vendor/pdfjs），內網可用
+  window.pdfjsReady = import('./vendor/pdfjs/pdf.min.mjs').then(lib => {
+    lib.GlobalWorkerOptions.workerSrc = './vendor/pdfjs/pdf.worker.min.mjs';
+    return lib;
+  }).catch(err => { console.error('pdf.js 載入失敗', err); return null; });
+</script>
+<script src="app.js?v=2"></script>
 </body>
 </html>

@@ -4,6 +4,9 @@
 let S = { config: {}, requests: [], history: {}, files: { cad: [], pdf: [] }, inbox: [] };
 let curTab = 'todo', curReq = null, curDwg = null;
 let extractOpen = null; // 收件匣展開中的萃取表單（避免輪詢時蓋掉）
+let placing = null;     // 重新定位模式：等待在圖上點擊的 request id
+let dragging = null;    // 拖曳中的標記狀態
+let pdfView = { code: null, pdfName: null, w: 800, h: 560, ok: false }; // 目前渲染的 PDF
 
 const statusName = { red: '🔴 待處理', yellow: '🟡 待確認', green: '🟢 已進版' };
 const statusStroke = { red: '#d1242f', yellow: '#d4a72c', green: '#1a7f37' };
@@ -144,6 +147,7 @@ function renderDetail() {
         ${r.refs.map(f => `<div class="ref" onclick="toast('🔗 （示意）開啟參考資料')">${f}</div>`).join('')}
       </div>` : ''}
       ${actions}
+      ${r.status !== 'green' ? `<button class="btn btn-ghost" onclick="setPlacing('${r.id}')">📍 重新定位標註（改在圖上點新位置）</button>` : ''}
       <div class="timeline">
         <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;">歷程</div>
         ${(r.log || []).map(l => `<div class="tl"><b>${l.t}</b><span>${l.e}</span></div>`).join('')}
@@ -161,10 +165,20 @@ async function openFile(type, name) {
   toast(r.ok ? `📂 已開啟 ${name}` : '⚠ ' + r.error);
 }
 
-/* ═══ 圖面 viewer（SVG 示意；實圖預覽為後續目標） ═══ */
+/* ═══ 圖面 viewer（pdf.js 渲染真實 PDF ＋ 標註覆蓋層） ═══ */
 function setDwg(code) {
   curDwg = code;
   renderSheet(); renderHist(); renderDwgTabs(); switchView('work');
+}
+/* 位置一律以正規化座標 (nx,ny ∈ 0~1) 儲存；相容舊格式 {x,y}（基於 800×560 畫布） */
+function getPos(r) {
+  if (!r.pos) return null;
+  if (r.pos.nx != null) return { nx: r.pos.nx, ny: r.pos.ny };
+  return { nx: r.pos.x / 800, ny: r.pos.y / 560 };
+}
+function latestPdfFor(code) {
+  const cands = S.files.pdf.filter(f => f.code === code && !f.name.toLowerCase().includes('pending'));
+  return cands.length ? cands[cands.length - 1] : null; // 檔名排序，流水號最大在後
 }
 function renderDwgTabs() {
   const el = document.getElementById('dwg-tabs');
@@ -185,56 +199,143 @@ function cloudPath(cx, cy, r) {
   }
   return p;
 }
-function sheetBody(code) {
-  if (code === 'A-201') return `
-      <rect x="80" y="90" width="640" height="380" fill="none" stroke="#1f2328" stroke-width="3"/>
-      ${[0,1,2,3,4,5,6,7].map(i => `
-        <line x1="${120+i*80}" y1="70" x2="${120+i*80}" y2="480" stroke="#c8ccd2" stroke-width="1" stroke-dasharray="8 5"/>
-        <circle cx="${120+i*80}" cy="58" r="13" fill="none" stroke="#59636e"/>
-        <text x="${120+i*80}" y="62" text-anchor="middle" font-size="11" fill="#59636e">C${i+1}</text>
-        ${[0,1,2,3].map(j => `<rect x="${115+i*80}" y="${115+j*100}" width="12" height="12" fill="#1f2328"/>`).join('')}
-      `).join('')}
-      <line x1="80" y1="280" x2="500" y2="280" stroke="#1f2328" stroke-width="2"/>
-      <rect x="500" y="230" width="130" height="110" fill="none" stroke="#1f2328" stroke-width="2"/>
-      <text x="565" y="290" text-anchor="middle" font-size="12" fill="#59636e">廁所</text>
-      <circle cx="560" cy="182" r="6" fill="none" stroke="#1f2328" stroke-width="1.6"/>
-      <text x="576" y="170" font-size="10" fill="#59636e">落水頭</text>`;
-  if (code === 'A-501') return `
-      <rect x="120" y="100" width="420" height="330" fill="none" stroke="#1f2328" stroke-width="3"/>
-      ${[0,1,2].map(i => `<line x1="${225+i*105}" y1="100" x2="${225+i*105}" y2="360" stroke="#1f2328" stroke-width="2"/>`).join('')}
-      <line x1="120" y1="360" x2="540" y2="360" stroke="#1f2328" stroke-width="2"/>
-      ${[0,1,2,3].map(i => `<ellipse cx="${172+i*105}" cy="300" rx="22" ry="30" fill="none" stroke="#59636e" stroke-width="1.4"/>`).join('')}
-      <text x="330" y="410" text-anchor="middle" font-size="13" fill="#59636e">廁所隔間大樣 S=1/30</text>`;
-  if (code === 'E-301') return `
-      <rect x="80" y="90" width="640" height="380" fill="none" stroke="#1f2328" stroke-width="3"/>
-      ${[0,1,2].map(i => `<rect x="${140+i*180}" y="140" width="110" height="70" fill="none" stroke="#1f2328" stroke-width="2"/><text x="${195+i*180}" y="180" text-anchor="middle" font-size="11" fill="#59636e">配電盤 P${i+1}</text>`).join('')}
-      <rect x="470" y="270" width="140" height="80" fill="none" stroke="#1f2328" stroke-width="2"/>
-      <text x="540" y="312" text-anchor="middle" font-size="11" fill="#59636e">洗床機 ×3</text>`;
-  return `
-      <rect x="80" y="90" width="640" height="380" fill="none" stroke="#c8ccd2" stroke-width="2" stroke-dasharray="8 6"/>
-      <text x="400" y="280" text-anchor="middle" font-size="15" fill="#8b949e">（尚無 ${code} 的示意圖，實圖預覽為後續目標）</text>`;
-}
-function renderSheet() {
+async function renderSheet() {
   const code = curDwg;
-  const d = S.history[code] || { name: '', building: '', history: [] };
-  const marks = S.requests.filter(r => r.drawing === code).map(r => `
-    <g class="marker ${curReq && curReq !== r.id ? 'dim' : ''}" data-req="${r.id}" onclick="selectReq('${r.id}')">
-      <path class="cloud" d="${cloudPath(r.pos.x, r.pos.y, 44)}" stroke="${statusStroke[r.status]}"/>
-      <circle cx="${r.pos.x+38}" cy="${r.pos.y-38}" r="13" fill="${statusStroke[r.status]}"/>
-      <text x="${r.pos.x+38}" y="${r.pos.y-33.5}" text-anchor="middle" fill="#fff">${r.marker}</text>
-    </g>`).join('');
-  document.getElementById('sheet').innerHTML = `<svg viewBox="0 0 800 560" xmlns="http://www.w3.org/2000/svg">
-    <rect x="14" y="14" width="772" height="532" fill="none" stroke="#1f2328" stroke-width="1.5"/>
-    ${sheetBody(code)}
-    <rect x="540" y="496" width="246" height="50" fill="none" stroke="#1f2328"/>
-    <line x1="640" y1="496" x2="640" y2="546" stroke="#1f2328"/>
-    <text x="555" y="516" font-size="11" fill="#59636e">圖號 ${code || '—'}</text>
-    <text x="555" y="536" font-size="11" fill="#59636e">${d.name || ''}</text>
-    <text x="655" y="516" font-size="11" fill="#59636e">版次 ${(d.history[0] || {}).ver || '—'}</text>
-    <text x="655" y="536" font-size="11" fill="#59636e">${d.building || ''}</text>
-    ${marks}
-  </svg>`;
+  const stack = document.getElementById('canvas-stack');
+  if (!stack) return;
+  const pdfFile = latestPdfFor(code);
+
+  // 需要重新渲染 PDF 底圖的情況（換圖或進了新版）
+  if (pdfFile && (pdfView.code !== code || pdfView.pdfName !== pdfFile.name)) {
+    const my = pdfView = { code, pdfName: pdfFile.name, w: 800, h: 560, ok: false, loading: true };
+    try {
+      const lib = await window.pdfjsReady;
+      if (!lib) throw new Error('pdf.js 未載入');
+      const pdf = await lib.getDocument({ url: location.origin + '/api/pdffile?name=' + encodeURIComponent(pdfFile.name) }).promise;
+      const page = await pdf.getPage(1);
+      const vp = page.getViewport({ scale: 2 }); // 2x 渲染保持清晰
+      const canvas = document.createElement('canvas');
+      canvas.width = vp.width; canvas.height = vp.height;
+      // intent:'print' 避免依賴 requestAnimationFrame（背景分頁/隱藏視窗也能渲染完成）
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp, intent: 'print' }).promise;
+      if (pdfView !== my) return; // 渲染期間使用者已切圖
+      pdfView.w = vp.width; pdfView.h = vp.height; pdfView.ok = true;
+      stack.innerHTML = '';
+      canvas.className = 'pdf-canvas';
+      stack.appendChild(canvas);
+      const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      overlay.setAttribute('viewBox', `0 0 ${vp.width} ${vp.height}`);
+      overlay.setAttribute('class', 'overlay');
+      overlay.id = 'overlay';
+      stack.appendChild(overlay);
+      bindOverlayEvents(overlay);
+    } catch (e) {
+      console.error('PDF 渲染失敗', e);
+      pdfView.ok = false;
+    } finally {
+      if (pdfView === my) pdfView.loading = false;
+    }
+  }
+
+  if (pdfView.loading) return; // 另一個渲染進行中，完成後會畫標記
+  if (!pdfFile || !pdfView.ok) { renderFallback(stack, code); return; }
+  renderMarkers();
 }
+function renderFallback(stack, code) {
+  const d = S.history[code] || { name: '', building: '', history: [] };
+  pdfView = { code, pdfName: null, w: 800, h: 560, ok: false };
+  stack.innerHTML = `<svg viewBox="0 0 800 560" xmlns="http://www.w3.org/2000/svg" class="fallback">
+    <rect x="14" y="14" width="772" height="532" fill="none" stroke="#1f2328" stroke-width="1.5"/>
+    <rect x="80" y="90" width="640" height="380" fill="none" stroke="#c8ccd2" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="400" y="270" text-anchor="middle" font-size="15" fill="#8b949e">找不到 ${code || '—'} 的出圖 PDF</text>
+    <text x="400" y="296" text-anchor="middle" font-size="12" fill="#8b949e">請確認出圖資料夾中有以 ${code || '圖號'} 開頭的 PDF 檔</text>
+  </svg>
+  <svg viewBox="0 0 800 560" class="overlay" id="overlay"></svg>`;
+  bindOverlayEvents(document.getElementById('overlay'));
+  renderMarkers();
+}
+function markerRadius() { return Math.max(pdfView.w, pdfView.h) * 0.045; }
+function renderMarkers() {
+  const overlay = document.getElementById('overlay');
+  if (!overlay) return;
+  const W = pdfView.w, H = pdfView.h, R = markerRadius();
+  overlay.innerHTML = S.requests.filter(r => r.drawing === pdfView.code && getPos(r)).map(r => {
+    const p = getPos(r);
+    const cx = p.nx * W, cy = p.ny * H;
+    return `
+    <g class="marker ${curReq && curReq !== r.id ? 'dim' : ''} ${dragging && dragging.id === r.id ? 'dragging' : ''}"
+       data-req="${r.id}" transform="translate(${cx},${cy})">
+      <path class="cloud" d="${cloudPath(0, 0, R)}" stroke="${statusStroke[r.status]}" stroke-width="${R * 0.07}"/>
+      <circle cx="${R * 0.86}" cy="${-R * 0.86}" r="${R * 0.3}" fill="${statusStroke[r.status]}"/>
+      <text x="${R * 0.86}" y="${-R * 0.86 + R * 0.11}" text-anchor="middle" fill="#fff" font-size="${R * 0.32}">${r.marker}</text>
+    </g>`;
+  }).join('');
+}
+
+/* ── 標註互動：拖曳修正 / 點擊定位（人工修正 → corrections.jsonl 訓練資料） ── */
+function overlayCoords(overlay, ev) {
+  const rect = overlay.getBoundingClientRect();
+  return {
+    nx: Math.min(1, Math.max(0, (ev.clientX - rect.left) / rect.width)),
+    ny: Math.min(1, Math.max(0, (ev.clientY - rect.top) / rect.height)),
+  };
+}
+function bindOverlayEvents(overlay) {
+  overlay.addEventListener('pointerdown', ev => {
+    const g = ev.target.closest('.marker');
+    if (placing) {
+      // 重新定位模式：點哪標哪
+      const p = overlayCoords(overlay, ev);
+      savePos(placing, p, 'marker_place');
+      setPlacing(null);
+      return;
+    }
+    if (!g) return;
+    const id = g.dataset.req;
+    const start = overlayCoords(overlay, ev);
+    dragging = { id, start, moved: false, last: start };
+    overlay.setPointerCapture(ev.pointerId);
+    ev.preventDefault();
+  });
+  overlay.addEventListener('pointermove', ev => {
+    if (!dragging) return;
+    const p = overlayCoords(overlay, ev);
+    if (Math.abs(p.nx - dragging.start.nx) * pdfView.w > 4 || Math.abs(p.ny - dragging.start.ny) * pdfView.h > 4) dragging.moved = true;
+    dragging.last = p;
+    if (dragging.moved) {
+      const g = overlay.querySelector(`.marker[data-req="${dragging.id}"]`);
+      if (g) g.setAttribute('transform', `translate(${p.nx * pdfView.w},${p.ny * pdfView.h})`);
+    }
+  });
+  overlay.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    const d = dragging; dragging = null;
+    if (d.moved) savePos(d.id, d.last, 'marker_move');
+    else selectReq(d.id); // 沒拖動＝點選
+  });
+}
+async function savePos(id, pos, kind) {
+  const r = await api(`/api/requests/${id}/pos`, { pos, kind, actor: me() });
+  if (r.ok) {
+    toast(kind === 'marker_place' ? `📍 已定位 ${id} 標註` : `🖐 已修正 ${id} 標註位置（已記錄為訓練資料）`);
+    await loadState();
+  } else toast('⚠ ' + r.error);
+}
+function setPlacing(id) {
+  placing = id;
+  const wrap = document.querySelector('.viewer-wrap');
+  const hint = document.getElementById('hint-bar');
+  if (id) {
+    wrap.classList.add('placing');
+    hint.textContent = `📍 定位模式：請在圖面上點擊 ${id} 的正確位置（Esc 取消）`;
+    hint.classList.add('placing');
+  } else {
+    wrap.classList.remove('placing');
+    hint.textContent = '🖐 拖曳雲朵標記可修正位置——每次修正都會記錄為訓練資料';
+    hint.classList.remove('placing');
+  }
+}
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && placing) setPlacing(null); });
 function renderHist() {
   const d = S.history[curDwg] || { history: [] };
   document.getElementById('hist-list').innerHTML = d.history.map(h => `
@@ -318,11 +419,19 @@ async function createReq(file) {
     requester: me(),
     source: { type: 'file', icon: '📄', from: m.file, quote: m.body.slice(0, 120) },
     sourceLabel: '收件匣檔案 ' + m.file,
-    pos: { x: 150 + Math.floor(Math.random() * 120), y: 380 + Math.floor(Math.random() * 60) },
+    pos: { nx: 0.12, ny: 0.85 },
   });
   extractOpen = null;
-  if (r.ok) toast(`🔴 已建立 ${r.request.id} 並連結至 ${r.request.drawing}`);
-  await loadState();
+  if (r.ok) {
+    toast(`🔴 已建立 ${r.request.id} 並連結至 ${r.request.drawing}`);
+    await loadState();
+    // 建單後直接進入定位模式：在圖上點一下位置＝完成標註（同時累積訓練資料）
+    switchView('work');
+    selectReq(r.request.id);
+    setPlacing(r.request.id);
+  } else {
+    await loadState();
+  }
 }
 
 /* ═══ 檔案庫（讀本地資料夾） ═══ */
@@ -361,5 +470,5 @@ function renderAll(first) {
 loadState(true);
 setInterval(() => {
   const modalOpen = document.querySelector('.modal-bg.show');
-  if (!modalOpen && !extractOpen) loadState();
+  if (!modalOpen && !extractOpen && !dragging && !placing) loadState();
 }, 8000);

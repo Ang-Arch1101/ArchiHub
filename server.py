@@ -16,6 +16,7 @@ import sys
 from datetime import datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web"
@@ -50,6 +51,13 @@ def save_json(path, obj):
 def get_config():
     cfg = {**DEFAULT_CONFIG, **load_json(CONFIG_PATH, {})}
     return cfg
+
+
+def append_jsonl(path, obj):
+    """累積訓練資料：一行一筆 JSON（人工修正記錄）"""
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(obj, ensure_ascii=False) + "\n")
 
 
 def resolve_dir(rel):
@@ -260,7 +268,25 @@ class Handler(SimpleHTTPRequestHandler):
             return {}
 
     def do_GET(self):
-        if self.path.split("?")[0] == "/api/state":
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/pdffile":
+            # 串流 PDF 檔給前端 pdf.js 渲染（限出圖資料夾內）
+            name = (parse_qs(parsed.query).get("name") or [""])[0]
+            cfg = get_config()
+            base = resolve_dir(cfg["pdfDir"]).resolve()
+            target = (base / name).resolve()
+            if (base not in target.parents) or not target.is_file():
+                self._json({"ok": False, "error": "PDF 不存在或路徑不允許"}, 404)
+                return
+            data = target.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/pdf")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        if parsed.path == "/api/state":
             cfg = get_config()
             self._json({
                 "config": cfg,
@@ -284,6 +310,31 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(create_request(body))
         elif m := re.match(r"^/api/requests/(REQ-\d+)/(accept|submit|confirm)$", path):
             self._json(transition(m.group(1), m.group(2), body.get("actor") or cfg["currentUser"]))
+        elif m := re.match(r"^/api/requests/(REQ-\d+)/pos$", path):
+            # 更新標註位置（正規化座標 0~1），並記錄人工修正 → 訓練資料
+            db = db_requests()
+            req = next((r for r in db["requests"] if r["id"] == m.group(1)), None)
+            pos = body.get("pos") or {}
+            if not req or "nx" not in pos:
+                self._json({"ok": False, "error": "缺少 request 或座標"}, 400)
+            else:
+                old = req.get("pos")
+                req["pos"] = {"nx": round(float(pos["nx"]), 4), "ny": round(float(pos["ny"]), 4)}
+                save_json(DATA / "requests.json", db)
+                append_jsonl(DATA / "corrections.jsonl", {
+                    "ts": datetime.now().isoformat(timespec="seconds"),
+                    "kind": body.get("kind") or "marker_move",
+                    "req": req["id"], "drawing": req["drawing"], "text": req["title"],
+                    "from": old, "to": req["pos"], "user": body.get("actor") or cfg["currentUser"],
+                })
+                self._json({"ok": True, "pos": req["pos"]})
+        elif path == "/api/corrections":
+            # 通用修正記錄（表單欄位修改等，供未來 AI few-shot / 微調）
+            append_jsonl(DATA / "corrections.jsonl", {
+                "ts": datetime.now().isoformat(timespec="seconds"),
+                **{k: body[k] for k in body if k != "ts"},
+            })
+            self._json({"ok": True})
         elif path == "/api/open":
             dirkey = {"cad": "cadDir", "pdf": "pdfDir", "inbox": "inboxDir"}.get(body.get("type"))
             if not dirkey:
