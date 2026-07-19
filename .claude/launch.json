@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "archihub",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["server.py"],
+      "port": 8734
+    },
+    {
+      "name": "archihub-prototype",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8735", "--directory", "prototype"],
+      "port": 8735
+    }
+  ]
+}

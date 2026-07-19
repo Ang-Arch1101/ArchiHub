@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArchiHub — 工程圖面的 GitHub</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="mark">📐</div>ArchiHub</div>
+  <div class="proj-pill">928816 · 竹北廠區新建工程</div>
+  <div class="spacer"></div>
+  <nav class="nav-tabs">
+    <button class="nav-tab" data-view="inbox" onclick="switchView('inbox')">📥 收件匣 <span class="badge" id="inbox-badge" style="display:none">0</span></button>
+    <button class="nav-tab active" data-view="work" onclick="switchView('work')">🗂 工作台</button>
+    <button class="nav-tab" data-view="files" onclick="switchView('files')">📁 檔案庫</button>
+  </nav>
+  <button class="gh-link" onclick="openModal('settings-modal')">⚙ 設定</button>
+  <button class="gh-link" onclick="openModal('gh-modal')">⇄ GitHub 對照</button>
+</header>
+
+<main>
+  <!-- ═══ 工作台 ═══ -->
+  <div class="view active" id="view-work">
+    <div class="pane pane-left">
+      <div class="side-tabs">
+        <button class="side-tab active" data-t="todo" onclick="setTab('todo')">🔧 待辦作業 <span class="cnt hot" id="cnt-todo">0</span></button>
+        <button class="side-tab" data-t="review" onclick="setTab('review')">👁 待我確認 <span class="cnt" id="cnt-review">0</span></button>
+        <button class="side-tab" data-t="all" onclick="setTab('all')">📋 全部</button>
+      </div>
+      <div class="tab-desc" id="tab-desc"></div>
+      <div id="req-list"></div>
+    </div>
+
+    <div class="pane-mid">
+      <div class="viewer-bar" id="dwg-tabs"></div>
+      <div class="viewer-wrap"><div class="sheet" id="sheet"></div></div>
+      <div class="history">
+        <div class="hist-title">🕘 版本歷史（進版流水號）<span style="font-weight:400;font-family:var(--mono);font-size:11px;">≈ commit log</span></div>
+        <div id="hist-list"></div>
+      </div>
+    </div>
+
+    <div class="pane-right">
+      <div class="pane-head">Request 詳情</div>
+      <div id="detail"><div class="detail-empty">← 點選左側任一 Request<br>查看詳情與圖面對應位置</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ 收件匣 ═══ -->
+  <div class="view" id="view-inbox">
+    <div class="page-wrap">
+      <h1>📥 訊息收件匣</h1>
+      <div class="page-sub">讀取本地收件匣資料夾（<span id="inbox-path" style="font-family:var(--mono)"></span>）的文字檔——Email 轉存、會議記錄、工地筆記都丟進來。萃取後轉為圖面 Request。<b>≈ GitHub Issue 的自動化入口</b></div>
+      <div id="msg-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══ 檔案庫 ═══ -->
+  <div class="view" id="view-files">
+    <div class="page-wrap">
+      <h1>📁 中央檔案庫</h1>
+      <div class="page-sub">即時讀取本地資料夾。所有改動都經 Request 流程進版，點檔案可直接用預設軟體開啟。<b>≈ GitHub Repository</b></div>
+      <div class="folder">
+        <div class="folder-head">📂 01_作業檔（CAD／Revit 源檔）<span class="path" id="cad-path"></span></div>
+        <div id="cad-files"></div>
+      </div>
+      <div class="folder">
+        <div class="folder-head">📂 02_出圖檔（PDF 正式版）<span class="path" id="pdf-path"></span></div>
+        <div id="pdf-files"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══ GitHub 對照 ═══ -->
+<div class="modal-bg" id="gh-modal" onclick="if(event.target===this)closeModal('gh-modal')">
+  <div class="modal">
+    <h2>⇄ 架構邏輯：GitHub 對照表</h2>
+    <div class="sub">軟體工程用 Git 管程式碼，我們用同一套邏輯管圖面。</div>
+    <table class="map-table">
+      <tr><th>GitHub</th><th>ArchiHub</th></tr>
+      <tr><td>Repository</td><td>中央檔案庫（CAD 源檔 + PDF 出圖）</td></tr>
+      <tr><td>Issue / Pull Request</td><td>圖面修改 Request（🔴 紅燈建立）</td></tr>
+      <tr><td>Clone / Pull</td><td>「前往修改」→ 建立本地副本並開啟 CAD 檔</td></tr>
+      <tr><td>Commit / Push</td><td>「完成並提交」→ 自動出 pending PDF（🟡 黃燈）</td></tr>
+      <tr><td>Review / Merge</td><td>發 Request 者確認 → 正式進版新流水號 PDF（🟢 綠燈）</td></tr>
+      <tr><td>Commit history</td><td>進版流水號 + designer / approver 記錄</td></tr>
+      <tr><td>Notification</td><td>Confirm 後通知所有人：舊版已被取代</td></tr>
+    </table>
+    <button class="btn btn-ghost close" onclick="closeModal('gh-modal')">關閉</button>
+  </div>
+</div>
+
+<!-- ═══ 設定 ═══ -->
+<div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
+  <div class="modal">
+    <h2>⚙ 資料夾與身分設定</h2>
+    <div class="sub">路徑可為絕對路徑（如 D:\案件\928816\CAD）或相對於專案的路徑。儲存後立即生效。</div>
+    <div class="form-grid" style="grid-template-columns:110px 1fr;">
+      <label>我的名字</label><input id="cfg-user">
+      <label>CAD 作業檔資料夾</label><input id="cfg-cad">
+      <label>PDF 出圖資料夾</label><input id="cfg-pdf">
+      <label>收件匣資料夾</label><input id="cfg-inbox">
+    </div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="saveConfig()">儲存設定</button>
+    <button class="btn btn-ghost close" onclick="closeModal('settings-modal')">取消</button>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<script src="app.js"></script>
+</body>
+</html>

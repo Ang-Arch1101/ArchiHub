@@ -1,0 +1,76 @@
+{
+  "A-201": {
+    "name": "二樓平面圖",
+    "building": "91 管理大樓",
+    "history": [
+      {
+        "ver": "v3.0-r08",
+        "date": "07/10",
+        "note": "2F 東側開口尺寸修正",
+        "designer": "阿勳",
+        "approver": "林主任",
+        "req": "REQ-038"
+      },
+      {
+        "ver": "v2.0-r05",
+        "date": "06/28",
+        "note": "柱位配合結構調整",
+        "designer": "阿勳",
+        "approver": "林主任",
+        "req": "REQ-031"
+      },
+      {
+        "ver": "v1.0-r01",
+        "date": "06/02",
+        "note": "初版發行",
+        "designer": "阿勳",
+        "approver": "林主任",
+        "req": "—"
+      }
+    ]
+  },
+  "A-501": {
+    "name": "廁所大樣圖",
+    "building": "91 管理大樓",
+    "history": [
+      {
+        "ver": "v2.0-r04",
+        "date": "07/05",
+        "note": "器具規格更新",
+        "designer": "小柯",
+        "approver": "林主任",
+        "req": "REQ-035"
+      },
+      {
+        "ver": "v1.0-r01",
+        "date": "06/02",
+        "note": "初版發行",
+        "designer": "小柯",
+        "approver": "林主任",
+        "req": "—"
+      }
+    ]
+  },
+  "E-301": {
+    "name": "機電設備配置圖",
+    "building": "91 管理大樓",
+    "history": [
+      {
+        "ver": "v4.0-r11",
+        "date": "07/15",
+        "note": "洗床機數量修正（圖說/數量表/價目表核對）",
+        "designer": "阿勳",
+        "approver": "陳監造",
+        "req": "REQ-040"
+      },
+      {
+        "ver": "v3.0-r09",
+        "date": "07/01",
+        "note": "配電盤移位",
+        "designer": "阿勳",
+        "approver": "林主任",
+        "req": "REQ-033"
+      }
+    ]
+  }
+}

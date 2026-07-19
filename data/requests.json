@@ -1,0 +1,113 @@
+{
+  "seq": 43,
+  "requests": [
+    {
+      "id": "REQ-042",
+      "status": "red",
+      "drawing": "A-201",
+      "title": "2F C4-7 柱旁落水頭東移 10cm",
+      "source": {
+        "type": "email",
+        "icon": "📧",
+        "from": "陳監造〈chen.eng@sinotech.com〉",
+        "quote": "配合現場排水坡度，C4-7 柱旁落水頭請往東移 10 公分，本週五前回覆新圖。"
+      },
+      "requester": "陳監造",
+      "designer": "阿勳",
+      "due": "07/22（週五）",
+      "refs": [
+        "📄 建築技術規則 §措施-排水坡度 1/100",
+        "📐 標準圖 SD-201 落水頭安裝大樣"
+      ],
+      "pos": {
+        "x": 565,
+        "y": 180
+      },
+      "marker": "A",
+      "log": [
+        {
+          "t": "07/18 09:12",
+          "e": "AI 從 Email 萃取建立 Request"
+        }
+      ],
+      "localCopy": false
+    },
+    {
+      "id": "REQ-041",
+      "status": "yellow",
+      "drawing": "A-501",
+      "title": "廁所隔間 C11 側往東移 15cm",
+      "source": {
+        "type": "note",
+        "icon": "📝",
+        "from": "我的筆記本（王副理口頭交代）",
+        "quote": "91 2F 廁所 C11 這邊隔間要往東移 15 公分 — 王副理口頭"
+      },
+      "requester": "阿勳",
+      "designer": "小柯",
+      "due": "07/20",
+      "refs": [
+        "📄 無障礙設施設計規範 §迴轉空間 150cm"
+      ],
+      "pos": {
+        "x": 300,
+        "y": 250
+      },
+      "marker": "B",
+      "pendingPdf": null,
+      "log": [
+        {
+          "t": "07/16 14:03",
+          "e": "AI 從筆記萃取建立 Request，指派給 小柯"
+        },
+        {
+          "t": "07/17 10:20",
+          "e": "小柯 接受任務，建立本地副本"
+        },
+        {
+          "t": "07/18 08:45",
+          "e": "小柯 完成提交，已自動出圖 → 待 阿勳 確認"
+        }
+      ],
+      "localCopy": true
+    },
+    {
+      "id": "REQ-040",
+      "status": "green",
+      "drawing": "E-301",
+      "title": "洗床機數量不符：圖說/數量表/價目表三方核對",
+      "source": {
+        "type": "email",
+        "icon": "📧",
+        "from": "宏昇機電〈vendor@hs-me.com〉",
+        "quote": "貴司圖說標示洗床機 3 台、數量表 2 台、詳細價目表 4 台，三者不符，請確認。"
+      },
+      "requester": "宏昇機電",
+      "designer": "阿勳",
+      "due": "07/15",
+      "refs": [
+        "📊 詳細價目表 第 12 頁 項次 E-108"
+      ],
+      "pos": {
+        "x": 520,
+        "y": 300
+      },
+      "marker": "C",
+      "log": [
+        {
+          "t": "07/12 11:30",
+          "e": "AI 從 Email 萃取建立 Request"
+        },
+        {
+          "t": "07/14 16:00",
+          "e": "阿勳 完成提交"
+        },
+        {
+          "t": "07/15 09:10",
+          "e": "陳監造 確認 → 正式進版 v4.0-r11，已通知所有人"
+        }
+      ],
+      "localCopy": false
+    }
+  ]
+}

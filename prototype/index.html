@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArchiHub — 工程圖面的 GitHub</title>
+<style>
+  :root{
+    --bg:#f6f8fa; --panel:#ffffff; --border:#d1d9e0; --border-soft:#e6eaef;
+    --text:#1f2328; --muted:#59636e; --accent:#0969da; --accent-soft:#ddf4ff;
+    --red:#d1242f; --red-bg:#ffebe9; --yellow:#9a6700; --yellow-bg:#fff8c5;
+    --green:#1a7f37; --green-bg:#dafbe1; --purple:#8250df;
+    --shadow:0 1px 3px rgba(31,35,40,.08), 0 8px 24px rgba(31,35,40,.06);
+    --mono:"SFMono-Regular",Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    background:var(--bg); color:var(--text); font-size:14px; line-height:1.55;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  /* ── Topbar ── */
+  header{
+    display:flex; align-items:center; gap:16px; padding:0 16px; height:56px;
+    background:#0d1117; color:#fff; flex-shrink:0;
+  }
+  .logo{display:flex; align-items:center; gap:8px; font-weight:700; font-size:16px; letter-spacing:.2px;}
+  .logo .mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#2f81f7,#8250df);display:grid;place-items:center;font-size:15px;}
+  .proj-pill{
+    font-size:12.5px; background:#21262d; border:1px solid #30363d; color:#c9d1d9;
+    padding:4px 12px; border-radius:999px; font-family:var(--mono);
+  }
+  header .spacer{flex:1;}
+  .nav-tabs{display:flex; gap:4px;}
+  .nav-tab{
+    background:none; border:none; color:#c9d1d9; font-size:13.5px; padding:7px 14px;
+    border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:6px; font-family:inherit;
+  }
+  .nav-tab:hover{background:#21262d;}
+  .nav-tab.active{background:#30363d; color:#fff; font-weight:600;}
+  .badge{
+    background:var(--red); color:#fff; font-size:10.5px; font-weight:700;
+    min-width:17px; height:17px; border-radius:999px; display:grid; place-items:center; padding:0 4px;
+  }
+  .gh-link{
+    font-size:12.5px; color:#8b949e; background:none; border:1px solid #30363d;
+    padding:5px 12px; border-radius:8px; cursor:pointer; font-family:inherit;
+  }
+  .gh-link:hover{color:#fff; border-color:#8b949e;}
+
+  main{flex:1; display:flex; overflow:hidden;}
+  .view{flex:1; display:none; overflow:hidden;}
+  .view.active{display:flex;}
+
+  /* ── 工作台 3-pane ── */
+  #view-work{display:none;}
+  #view-work.active{display:grid; grid-template-columns:300px 1fr 340px;}
+  .pane{overflow-y:auto; background:var(--panel);}
+  .pane-left{border-right:1px solid var(--border);}
+  .pane-mid{background:var(--bg); display:flex; flex-direction:column; overflow:hidden;}
+  .pane-right{border-left:1px solid var(--border);}
+
+  .pane-head{
+    padding:12px 16px 8px; font-size:12px; font-weight:700; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.5px; display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; background:inherit; z-index:2;
+  }
+  .filters{display:flex; gap:6px; padding:0 16px 10px; flex-wrap:wrap;}
+  .chip{
+    font-size:12px; padding:3px 10px; border-radius:999px; border:1px solid var(--border);
+    background:var(--panel); cursor:pointer; color:var(--muted); font-family:inherit;
+  }
+  .chip.active{background:#0d1117; color:#fff; border-color:#0d1117;}
+
+  .req-card{
+    margin:0 10px 8px; padding:10px 12px; border:1px solid var(--border-soft); border-radius:10px;
+    cursor:pointer; background:var(--panel); transition:border-color .12s, background .12s;
+  }
+  .req-card:hover{border-color:var(--accent);}
+  .req-card.selected{border-color:var(--accent); background:var(--accent-soft);}
+  .req-top{display:flex; align-items:center; gap:7px; margin-bottom:3px;}
+  .light{width:10px; height:10px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 3px transparent;}
+  .light.red{background:var(--red); box-shadow:0 0 0 3px var(--red-bg); animation:pulse 1.6s infinite;}
+  .light.yellow{background:#d4a72c; box-shadow:0 0 0 3px var(--yellow-bg);}
+  .light.green{background:var(--green); box-shadow:0 0 0 3px var(--green-bg);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+  .req-id{font-family:var(--mono); font-size:11.5px; color:var(--muted);}
+  .req-title{font-size:13px; font-weight:600; line-height:1.4;}
+  .req-meta{font-size:11.5px; color:var(--muted); margin-top:4px; display:flex; gap:8px; flex-wrap:wrap;}
+  .tag{
+    font-size:11px; padding:1px 8px; border-radius:999px; font-family:var(--mono);
+    background:var(--accent-soft); color:var(--accent); border:1px solid #b6e3ff;
+  }
+
+  /* ── 圖面 viewer ── */
+  .viewer-bar{
+    display:flex; align-items:center; gap:10px; padding:10px 16px;
+    background:var(--panel); border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .dwg-tab{
+    font-size:12.5px; font-family:var(--mono); padding:5px 12px; border-radius:8px;
+    border:1px solid var(--border); background:var(--panel); cursor:pointer;
+  }
+  .dwg-tab.active{background:#0d1117; color:#fff; border-color:#0d1117;}
+  .ver-pill{font-size:12px; font-family:var(--mono); color:var(--muted); margin-left:auto;
+    background:var(--bg); border:1px solid var(--border); padding:3px 10px; border-radius:999px;}
+  .viewer-wrap{flex:1; overflow:auto; display:grid; place-items:center; padding:20px; position:relative;}
+  .sheet{
+    background:#fff; box-shadow:var(--shadow); border:1px solid var(--border);
+    width:min(96%, 860px);
+  }
+  .marker{cursor:pointer;}
+  .marker .cloud{fill:none; stroke-width:2.5; stroke-dasharray:1 0;}
+  .marker text{font-size:13px; font-weight:700; font-family:var(--mono);}
+  .marker.dim{opacity:.35;}
+  .marker.focus .cloud{stroke-width:4;}
+  .marker.focus{animation:blink .9s 3;}
+  @keyframes blink{50%{opacity:.25;}}
+
+  /* ── 版本歷史 ── */
+  .history{
+    flex-shrink:0; background:var(--panel); border-top:1px solid var(--border);
+    max-height:190px; overflow-y:auto; padding:10px 16px 14px;
+  }
+  .hist-title{font-size:12px; font-weight:700; color:var(--muted); letter-spacing:.5px; margin-bottom:8px;
+    display:flex; align-items:center; gap:8px;}
+  .hist-item{
+    display:flex; align-items:baseline; gap:10px; padding:6px 0; font-size:12.5px;
+    border-left:2px solid var(--border); padding-left:14px; margin-left:5px; position:relative;
+  }
+  .hist-item::before{
+    content:""; position:absolute; left:-6px; top:11px; width:9px; height:9px; border-radius:50%;
+    background:var(--panel); border:2px solid var(--muted);
+  }
+  .hist-item.new::before{border-color:var(--green); background:var(--green);}
+  .hist-ver{font-family:var(--mono); font-weight:700; white-space:nowrap;}
+  .hist-item.new .hist-ver{color:var(--green);}
+  .hist-note{color:var(--text);}
+  .hist-who{color:var(--muted); font-size:11.5px; white-space:nowrap; margin-left:auto;}
+
+  /* ── 詳情 panel ── */
+  .detail{padding:16px;}
+  .detail-empty{color:var(--muted); text-align:center; padding:60px 24px; font-size:13px;}
+  .status-banner{
+    display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px;
+    font-weight:700; font-size:13.5px; margin-bottom:14px;
+  }
+  .status-banner.red{background:var(--red-bg); color:var(--red);}
+  .status-banner.yellow{background:var(--yellow-bg); color:var(--yellow);}
+  .status-banner.green{background:var(--green-bg); color:var(--green);}
+  .detail h2{font-size:15.5px; line-height:1.4; margin-bottom:4px;}
+  .detail .req-id{font-size:12px;}
+  .kv{display:grid; grid-template-columns:78px 1fr; gap:6px 10px; margin:14px 0; font-size:13px;}
+  .kv dt{color:var(--muted);}
+  .kv dd a{color:var(--accent); text-decoration:none; cursor:pointer;}
+  .kv dd a:hover{text-decoration:underline;}
+  .source-box{
+    background:var(--bg); border:1px solid var(--border-soft); border-radius:10px;
+    padding:10px 12px; font-size:12.5px; margin:12px 0;
+  }
+  .source-box .src-head{display:flex; gap:6px; align-items:center; font-weight:600; margin-bottom:5px; font-size:12px;}
+  .source-box blockquote{color:var(--muted); border-left:3px solid var(--border); padding-left:10px; font-style:normal;}
+  .refs{margin:12px 0;}
+  .refs .ref{
+    display:flex; gap:8px; align-items:center; font-size:12.5px; padding:6px 10px;
+    border:1px solid var(--border-soft); border-radius:8px; margin-bottom:6px; color:var(--accent); cursor:pointer;
+  }
+  .refs .ref:hover{background:var(--accent-soft);}
+  .btn{
+    display:block; width:100%; padding:10px; border-radius:10px; border:none; cursor:pointer;
+    font-size:14px; font-weight:700; font-family:inherit; margin-top:8px; transition:filter .12s;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn-primary{background:var(--green); color:#fff;}
+  .btn-accent{background:var(--accent); color:#fff;}
+  .btn-warn{background:#bf8700; color:#fff;}
+  .btn-ghost{background:var(--panel); border:1px solid var(--border); color:var(--text); font-weight:600;}
+  .local-note{
+    display:flex; gap:8px; align-items:center; font-size:12px; color:var(--purple);
+    background:#fbefff; border:1px solid #e2c5f8; border-radius:8px; padding:7px 10px; margin-top:10px;
+  }
+  .timeline{margin-top:16px; border-top:1px dashed var(--border); padding-top:12px;}
+  .timeline .tl{display:flex; gap:8px; font-size:12px; color:var(--muted); padding:3px 0;}
+  .timeline .tl b{color:var(--text); font-weight:600;}
+
+  /* ── 收件匣 ── */
+  #view-inbox.active{display:block; overflow-y:auto;}
+  .inbox-wrap{max-width:780px; margin:0 auto; padding:28px 20px 60px;}
+  .inbox-wrap h1{font-size:19px; margin-bottom:2px;}
+  .inbox-sub{color:var(--muted); font-size:13px; margin-bottom:20px;}
+  .msg-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:16px 18px; margin-bottom:14px; box-shadow:0 1px 2px rgba(31,35,40,.04);
+  }
+  .msg-head{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+  .src-icon{
+    width:34px; height:34px; border-radius:9px; display:grid; place-items:center; font-size:16px; flex-shrink:0;
+  }
+  .src-email{background:#ddf4ff;} .src-note{background:#fff8c5;} .src-meeting{background:#dafbe1;}
+  .msg-from{font-weight:700; font-size:13.5px;}
+  .msg-sub{font-size:12px; color:var(--muted);}
+  .msg-time{margin-left:auto; font-size:12px; color:var(--muted); white-space:nowrap;}
+  .msg-body{font-size:13.5px; color:var(--text); background:var(--bg); border-radius:8px; padding:10px 12px; margin-bottom:10px;}
+  .extract-btn{
+    background:linear-gradient(135deg,#2f81f7,#8250df); color:#fff; border:none; border-radius:8px;
+    padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .extract-btn:hover{filter:brightness(1.1);}
+  .done-chip{
+    display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--green);
+    background:var(--green-bg); padding:5px 12px; border-radius:999px; font-weight:600;
+  }
+  .done-chip a{color:var(--green); cursor:pointer; text-decoration:underline;}
+  .extract-result{
+    border:1px solid #b6e3ff; background:linear-gradient(180deg,#f3faff,#fff); border-radius:10px;
+    padding:12px 14px; margin-top:10px; display:none;
+  }
+  .extract-result.show{display:block; animation:fadeUp .3s ease;}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  .ai-tag{font-size:11px; font-weight:700; color:#8250df; letter-spacing:.5px; margin-bottom:8px; display:flex; align-items:center; gap:5px;}
+  .parse-grid{display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:12.5px;}
+  .parse-grid dt{color:var(--muted);}
+  .parse-grid dd b{font-family:var(--mono); font-weight:600;}
+  .conf{font-size:11px; color:var(--muted);}
+  .thinking{display:none; align-items:center; gap:8px; color:var(--purple); font-size:12.5px; margin-top:10px;}
+  .thinking.show{display:flex;}
+  .spinner{width:14px; height:14px; border:2px solid #e2c5f8; border-top-color:var(--purple); border-radius:50%; animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ── 檔案庫 ── */
+  #view-files.active{display:block; overflow-y:auto;}
+  .files-wrap{max-width:820px; margin:0 auto; padding:28px 20px 60px;}
+  .folder{background:var(--panel); border:1px solid var(--border); border-radius:12px; margin-bottom:18px; overflow:hidden;}
+  .folder-head{
+    display:flex; align-items:center; gap:8px; padding:11px 16px; font-weight:700; font-size:13.5px;
+    background:var(--bg); border-bottom:1px solid var(--border); font-family:var(--mono);
+  }
+  .file-row{
+    display:flex; align-items:center; gap:10px; padding:9px 16px; font-size:13px;
+    border-bottom:1px solid var(--border-soft); cursor:pointer;
+  }
+  .file-row:last-child{border-bottom:none;}
+  .file-row:hover{background:var(--accent-soft);}
+  .file-name{font-family:var(--mono); font-size:12.5px;}
+  .file-row .ver-pill{margin-left:auto;}
+  .lock{font-size:11.5px; color:var(--yellow); background:var(--yellow-bg); padding:2px 8px; border-radius:999px;}
+
+  /* ── Modal ── */
+  .modal-bg{
+    position:fixed; inset:0; background:rgba(13,17,23,.55); display:none;
+    place-items:center; z-index:50; padding:20px;
+  }
+  .modal-bg.show{display:grid;}
+  .modal{
+    background:var(--panel); border-radius:14px; max-width:640px; width:100%; max-height:85vh;
+    overflow-y:auto; padding:24px 26px; box-shadow:var(--shadow);
+  }
+  .modal h2{font-size:17px; margin-bottom:4px;}
+  .modal .sub{color:var(--muted); font-size:13px; margin-bottom:16px;}
+  .map-table{width:100%; border-collapse:collapse; font-size:13px;}
+  .map-table th,.map-table td{border:1px solid var(--border); padding:8px 12px; text-align:left;}
+  .map-table th{background:var(--bg); font-size:12px; color:var(--muted);}
+  .map-table td:first-child{font-family:var(--mono); font-size:12.5px; color:var(--purple);}
+  .modal .close{margin-top:18px; width:auto; padding:8px 22px; display:inline-block;}
+
+  /* ── Toast ── */
+  #toasts{position:fixed; bottom:20px; right:20px; z-index:99; display:flex; flex-direction:column; gap:8px;}
+  .toast{
+    background:#0d1117; color:#fff; padding:11px 16px; border-radius:10px; font-size:13px;
+    box-shadow:var(--shadow); display:flex; gap:8px; align-items:center; max-width:360px;
+    animation:toastIn .25s ease;
+  }
+  @keyframes toastIn{from{opacity:0; transform:translateX(20px);} to{opacity:1; transform:none;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="mark">📐</div>ArchiHub</div>
+  <div class="proj-pill">928816 · 竹北廠區新建工程</div>
+  <div class="spacer"></div>
+  <nav class="nav-tabs">
+    <button class="nav-tab" data-view="inbox" onclick="switchView('inbox')">📥 收件匣 <span class="badge" id="inbox-badge">2</span></button>
+    <button class="nav-tab active" data-view="work" onclick="switchView('work')">🗂 工作台</button>
+    <button class="nav-tab" data-view="files" onclick="switchView('files')">📁 檔案庫</button>
+  </nav>
+  <button class="gh-link" onclick="document.getElementById('gh-modal').classList.add('show')">⇄ GitHub 對照</button>
+</header>
+
+<main>
+  <!-- ═══ 工作台 ═══ -->
+  <div class="view active" id="view-work">
+    <div class="pane pane-left">
+      <div class="pane-head">Request 清單 <span id="req-count"></span></div>
+      <div class="filters" id="filters">
+        <button class="chip active" data-f="all" onclick="setFilter('all')">全部</button>
+        <button class="chip" data-f="red" onclick="setFilter('red')">🔴 待處理</button>
+        <button class="chip" data-f="yellow" onclick="setFilter('yellow')">🟡 待確認</button>
+        <button class="chip" data-f="green" onclick="setFilter('green')">🟢 已進版</button>
+      </div>
+      <div id="req-list"></div>
+    </div>
+
+    <div class="pane-mid">
+      <div class="viewer-bar" id="dwg-tabs"></div>
+      <div class="viewer-wrap"><div class="sheet" id="sheet"></div></div>
+      <div class="history">
+        <div class="hist-title">🕘 版本歷史（進版流水號）<span style="font-weight:400;font-family:var(--mono);font-size:11px;">≈ commit log</span></div>
+        <div id="hist-list"></div>
+      </div>
+    </div>
+
+    <div class="pane-right">
+      <div class="pane-head">Request 詳情</div>
+      <div id="detail"><div class="detail-empty">← 點選左側任一 Request<br>查看詳情與圖面對應位置</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ 收件匣 ═══ -->
+  <div class="view" id="view-inbox">
+    <div class="inbox-wrap">
+      <h1>📥 訊息收件匣</h1>
+      <div class="inbox-sub">多來源訊息（Email／筆記／會議記錄）自動彙集於此，AI 萃取後轉為圖面 Request。<b>≈ GitHub Issue 的自動化入口</b></div>
+      <div id="msg-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══ 檔案庫 ═══ -->
+  <div class="view" id="view-files">
+    <div class="files-wrap">
+      <h1 style="font-size:19px;margin-bottom:2px;">📁 中央檔案庫</h1>
+      <div class="inbox-sub">唯一真實來源（single source of truth）。所有改動都經 Request 流程進版，不再有散落各處的私版。<b>≈ GitHub Repository</b></div>
+      <div class="folder">
+        <div class="folder-head">📂 01_作業檔（CAD／Revit 源檔）</div>
+        <div id="cad-files"></div>
+      </div>
+      <div class="folder">
+        <div class="folder-head">📂 02_出圖檔（PDF 正式版）</div>
+        <div id="pdf-files"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══ GitHub 對照 modal ═══ -->
+<div class="modal-bg" id="gh-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <h2>⇄ 架構邏輯：GitHub 對照表</h2>
+    <div class="sub">軟體工程用 Git 管程式碼，我們用同一套邏輯管圖面。</div>
+    <table class="map-table">
+      <tr><th>GitHub</th><th>ArchiHub</th></tr>
+      <tr><td>Repository</td><td>中央檔案庫（CAD 源檔 + PDF 出圖）</td></tr>
+      <tr><td>Issue / Pull Request</td><td>圖面修改 Request（🔴 紅燈建立）</td></tr>
+      <tr><td>Clone / Pull</td><td>「前往修改」→ 自動建立本地副本（local copy）</td></tr>
+      <tr><td>Commit / Push</td><td>「完成並提交」→ 存檔 + 自動出 PDF + 推回中央庫（🟡 黃燈 Pending）</td></tr>
+      <tr><td>Review / Merge</td><td>發 Request 者確認符合要求 → 正式進版（🟢 綠燈）</td></tr>
+      <tr><td>Commit history</td><td>進版流水號 + 歷史軌跡（designer / approver 都記錄）</td></tr>
+      <tr><td>Fork（未合併分支）</td><td>編輯中版本：有流水號，但不取代中央檔</td></tr>
+      <tr><td>Notification</td><td>Confirm 後自動通知所有人：舊版已被取代</td></tr>
+    </table>
+    <button class="btn btn-ghost close" onclick="document.getElementById('gh-modal').classList.remove('show')">關閉</button>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* ═══════════════ 假資料 ═══════════════ */
+const drawings = {
+  'A-201': {
+    code:'A-201', name:'二樓平面圖', building:'91 管理大樓',
+    file:'A-201_管理大樓_2F平面圖.dwg', ver:3, rev:0, locked:null,
+    history:[
+      {ver:'v3.0-r08', date:'07/10', note:'2F 東側開口尺寸修正', designer:'阿勳', approver:'林主任', req:'REQ-038'},
+      {ver:'v2.0-r05', date:'06/28', note:'柱位配合結構調整', designer:'阿勳', approver:'林主任', req:'REQ-031'},
+      {ver:'v1.0-r01', date:'06/02', note:'初版發行', designer:'阿勳', approver:'林主任', req:'—'},
+    ]
+  },
+  'A-501': {
+    code:'A-501', name:'廁所大樣圖', building:'91 管理大樓',
+    file:'A-501_廁所大樣圖.dwg', ver:2, rev:0, locked:null,
+    history:[
+      {ver:'v2.0-r04', date:'07/05', note:'器具規格更新', designer:'小柯', approver:'林主任', req:'REQ-035'},
+      {ver:'v1.0-r01', date:'06/02', note:'初版發行', designer:'小柯', approver:'林主任', req:'—'},
+    ]
+  },
+  'E-301': {
+    code:'E-301', name:'機電設備配置圖', building:'91 管理大樓',
+    file:'E-301_機電設備配置圖.dwg', ver:4, rev:0, locked:null,
+    history:[
+      {ver:'v4.0-r11', date:'07/15', note:'洗床機數量修正（圖說/數量表/價目表核對）', designer:'阿勳', approver:'陳監造', req:'REQ-040'},
+      {ver:'v3.0-r09', date:'07/01', note:'配電盤移位', designer:'阿勳', approver:'林主任', req:'REQ-033'},
+    ]
+  },
+};
+
+let requests = [
+  {
+    id:'REQ-042', status:'red', drawing:'A-201',
+    title:'2F C4-7 柱旁落水頭東移 10cm',
+    pos:{x:565, y:180}, marker:'A',
+    source:{type:'email', icon:'📧', from:'陳監造〈chen.eng@sinotech.com〉', quote:'配合現場排水坡度，C4-7 柱旁落水頭請往東移 10 公分，本週五前回覆新圖。'},
+    requester:'陳監造', designer:'我（阿勳）', due:'07/22（週五）',
+    refs:['📄 建築技術規則 §措施-排水坡度 1/100','📐 標準圖 SD-201 落水頭安裝大樣'],
+    log:[{t:'07/18 09:12', e:'AI 從 Email 萃取建立 Request'}],
+    localCopy:false
+  },
+  {
+    id:'REQ-041', status:'yellow', drawing:'A-501',
+    title:'廁所隔間 C11 側往東移 15cm',
+    pos:{x:300, y:250}, marker:'B',
+    source:{type:'note', icon:'📝', from:'我的筆記本（口頭交代）', quote:'91 2F 廁所 C11 這邊隔間要往東移 15 公分 — 王副理口頭'},
+    requester:'王副理', designer:'小柯', due:'07/20',
+    refs:['📄 無障礙設施設計規範 §迴轉空間 150cm'],
+    log:[
+      {t:'07/16 14:03', e:'AI 從筆記萃取建立 Request'},
+      {t:'07/17 10:20', e:'小柯 接受任務，建立本地副本'},
+      {t:'07/18 08:45', e:'小柯 完成提交，已自動出圖 → 待 王副理 確認'},
+    ],
+    localCopy:true
+  },
+  {
+    id:'REQ-040', status:'green', drawing:'E-301',
+    title:'洗床機數量不符：圖說/數量表/價目表三方核對',
+    pos:{x:520, y:300}, marker:'C',
+    source:{type:'email', icon:'📧', from:'宏昇機電〈vendor@hs-me.com〉', quote:'貴司圖說標示洗床機 3 台、數量表 2 台、詳細價目表 4 台，三者不符，請確認。'},
+    requester:'宏昇機電', designer:'我（阿勳）', due:'07/15',
+    refs:['📊 詳細價目表 第 12 頁 項次 E-108'],
+    log:[
+      {t:'07/12 11:30', e:'AI 從 Email 萃取建立 Request'},
+      {t:'07/14 16:00', e:'阿勳 完成提交'},
+      {t:'07/15 09:10', e:'陳監造 確認 → 正式進版 v4.0-r11，已通知所有人'},
+    ],
+    localCopy:false
+  },
+];
+
+const messages = [
+  {
+    id:'MSG-3', type:'note', icon:'📝', cls:'src-note',
+    from:'我的筆記本', sub:'今早巡工地手記', time:'今天 10:42',
+    body:'91 3F 樓梯間 C2 柱旁的消防栓箱跟門片開向打架，箱體要往北挪，順便確認箱體尺寸有沒有符合消防法規',
+    parsed:{proj:'928816', bld:'91 管理大樓', dwg:'A-201 二樓平面圖 → 建議改對應 A-301（3F）', pos:'3F C2 柱旁 消防栓箱', act:'箱體北移＋核對消防法規箱體尺寸', conf:'87%'},
+    state:'raw'
+  },
+  {
+    id:'MSG-2', type:'meeting', icon:'🗓️', cls:'src-meeting',
+    from:'0717 工務會議記錄', sub:'第 14 次工務會議 · 決議事項 3', time:'昨天 17:30',
+    body:'決議：管理大樓一樓大廳地坪材質由拋光石英磚改為石材，請設計單位下週三前提送修正圖及材質樣品。',
+    parsed:{proj:'928816', bld:'91 管理大樓', dwg:'A-101 一樓平面圖／A-601 材料表', pos:'1F 大廳地坪', act:'地坪材質變更：拋光石英磚 → 石材，附樣品', conf:'93%'},
+    state:'raw'
+  },
+  {
+    id:'MSG-1', type:'email', icon:'📧', cls:'src-email',
+    from:'陳監造', sub:'RE: 2F 排水配置', time:'今天 09:10',
+    body:'配合現場排水坡度，C4-7 柱旁落水頭請往東移 10 公分，本週五前回覆新圖。',
+    state:'done', linked:'REQ-042'
+  },
+];
+
+/* ═══════════════ 全域狀態 ═══════════════ */
+let curFilter='all', curReq=null, curDwg='A-201', reqSeq=43;
+
+/* ═══════════════ View 切換 ═══════════════ */
+function switchView(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.toggle('active', x.dataset.view===v));
+}
+
+/* ═══════════════ Request 清單 ═══════════════ */
+const statusName={red:'🔴 待處理', yellow:'🟡 待確認', green:'🟢 已進版'};
+function setFilter(f){
+  curFilter=f;
+  document.querySelectorAll('#filters .chip').forEach(c=>c.classList.toggle('active', c.dataset.f===f));
+  renderList();
+}
+function renderList(){
+  const el=document.getElementById('req-list');
+  const list=requests.filter(r=>curFilter==='all'||r.status===curFilter);
+  document.getElementById('req-count').textContent=`${requests.filter(r=>r.status==='red').length} 待處理`;
+  el.innerHTML=list.map(r=>`
+    <div class="req-card ${curReq===r.id?'selected':''}" onclick="selectReq('${r.id}')">
+      <div class="req-top"><span class="light ${r.status}"></span><span class="req-id">${r.id}</span></div>
+      <div class="req-title">${r.title}</div>
+      <div class="req-meta"><span class="tag">${r.drawing}</span><span>${r.source.icon} ${r.source.from.split('〈')[0]}</span><span>⏱ ${r.due}</span></div>
+    </div>`).join('');
+}
+
+function selectReq(id){
+  curReq=id;
+  const r=requests.find(x=>x.id===id);
+  if(r.drawing in drawings) setDwg(r.drawing, false);
+  renderList(); renderDetail(); renderSheet();
+  // 聚焦 marker
+  setTimeout(()=>{
+    const m=document.querySelector(`.marker[data-req="${id}"]`);
+    if(m){m.classList.add('focus');}
+  },50);
+}
+
+/* ═══════════════ 詳情 ═══════════════ */
+function renderDetail(){
+  const el=document.getElementById('detail');
+  const r=requests.find(x=>x.id===curReq);
+  if(!r){el.innerHTML='<div class="detail-empty">← 點選左側任一 Request<br>查看詳情與圖面對應位置</div>';return;}
+  const d=drawings[r.drawing];
+  let actions='';
+  if(r.status==='red'){
+    actions = r.localCopy
+      ? `<div class="local-note">💾 本地副本編輯中：<span style="font-family:var(--mono)">${d.file.replace('.dwg','_local.dwg')}</span></div>
+         <button class="btn btn-warn" onclick="submitReq('${r.id}')">⬆ 完成並提交（自動出 PDF）</button>`
+      : `<button class="btn btn-accent" onclick="acceptReq('${r.id}')">▶ 接受任務・前往修改（建立本地副本）</button>`;
+  }else if(r.status==='yellow'){
+    actions=`<div class="local-note" style="color:var(--yellow);background:var(--yellow-bg);border-color:#eed888;">⏳ Pending — 等待 ${r.requester} 檢查圖面是否符合要求</div>
+      <button class="btn btn-primary" onclick="confirmReq('${r.id}')">✓ 確認符合要求（模擬 ${r.requester}）→ 正式進版</button>`;
+  }else{
+    actions=`<div class="local-note" style="color:var(--green);background:var(--green-bg);border-color:#a8e5bc;">✅ 已正式進版並通知所有人，本 Request 結案</div>`;
+  }
+  el.innerHTML=`
+    <div class="detail">
+      <div class="status-banner ${r.status}"><span class="light ${r.status}"></span>${statusName[r.status]}</div>
+      <span class="req-id">${r.id}</span>
+      <h2>${r.title}</h2>
+      <div class="source-box">
+        <div class="src-head">${r.source.icon} 來源：${r.source.from}</div>
+        <blockquote>「${r.source.quote}」</blockquote>
+      </div>
+      <dl class="kv">
+        <dt>對應圖面</dt><dd><a onclick="setDwg('${r.drawing}')">${r.drawing} ${d.name}（${d.building}）</a></dd>
+        <dt>圖上位置</dt><dd>標記 ⓘ${r.marker}（點圖面雲朵可互查）</dd>
+        <dt>Requester</dt><dd>${r.requester}</dd>
+        <dt>Designer</dt><dd>${r.designer}</dd>
+        <dt>回覆期限</dt><dd>${r.due}</dd>
+        <dt>現行版本</dt><dd style="font-family:var(--mono)">v${d.ver}.${d.rev>0?d.rev:0}-r${String(d.history.length>0?parseInt(d.history[0].ver.split('r')[1]):1).padStart(2,'0')}</dd>
+      </dl>
+      <div class="refs">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">📎 AI 附帶參考資料</div>
+        ${r.refs.map(f=>`<div class="ref" onclick="toast('🔗 （原型示意）開啟參考資料：'+this.textContent)">${f}</div>`).join('')}
+      </div>
+      ${actions}
+      <div class="timeline">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;">歷程</div>
+        ${r.log.map(l=>`<div class="tl"><b>${l.t}</b>${l.e}</div>`).join('')}
+      </div>
+    </div>`;
+}
+
+/* ═══════════════ 狀態流轉（Git 流程） ═══════════════ */
+function acceptReq(id){
+  const r=requests.find(x=>x.id===id);
+  const d=drawings[r.drawing];
+  r.localCopy=true; d.locked=r.designer;
+  r.log.push({t:now(), e:`${r.designer.replace('我（','').replace('）','')} 接受任務，建立本地副本（≈ git clone）`});
+  toast(`💾 已建立本地副本 ${d.file.replace('.dwg','_local.dwg')}，開啟 CAD 至修改位置…`);
+  renderDetail(); renderFiles();
+}
+function submitReq(id){
+  const r=requests.find(x=>x.id===id);
+  r.status='yellow';
+  r.log.push({t:now(), e:'完成提交，已自動出圖 PDF（≈ git push）→ 待 '+r.requester+' 確認'});
+  toast(`⬆ 已提交並自動出圖：${r.drawing}_pending.pdf → 🟡 通知 ${r.requester} 檢查`);
+  renderAll();
+}
+function confirmReq(id){
+  const r=requests.find(x=>x.id===id);
+  const d=drawings[r.drawing];
+  r.status='green'; d.locked=null;
+  // 進版：版本+流水號
+  d.rev+=1;
+  const lastR=parseInt(d.history[0].ver.split('r')[1]);
+  const newVer=`v${d.ver}.${d.rev}-r${String(lastR+1).padStart(2,'0')}`;
+  d.history.unshift({ver:newVer, date:now().split(' ')[0], note:r.title, designer:r.designer.replace('我（','').replace('）',''), approver:r.requester, req:r.id, isNew:true});
+  r.log.push({t:now(), e:`${r.requester} 確認 → 正式進版 ${newVer}（≈ merge），已通知所有人舊版作廢`});
+  toast(`🟢 ${r.drawing} 正式進版 ${newVer}`);
+  setTimeout(()=>toast(`📢 已通知專案全員：${r.drawing} 更新至 ${newVer}，中央檔已取代舊版`),700);
+  renderAll();
+}
+function now(){return '07/18 '+new Date().toTimeString().slice(0,5);}
+
+/* ═══════════════ 圖面 viewer ═══════════════ */
+function setDwg(code, rerenderDetail=true){
+  curDwg=code;
+  document.querySelectorAll('.dwg-tab').forEach(t=>t.classList.toggle('active', t.dataset.d===code));
+  renderSheet(); renderHist(); renderDwgTabs();
+  if(rerenderDetail) renderDetail();
+}
+function renderDwgTabs(){
+  const el=document.getElementById('dwg-tabs');
+  const d=drawings[curDwg];
+  el.innerHTML=Object.values(drawings).map(x=>
+    `<button class="dwg-tab ${x.code===curDwg?'active':''}" data-d="${x.code}" onclick="setDwg('${x.code}')">${x.code}</button>`
+  ).join('')+`<span class="ver-pill">📄 ${d.name} · ${d.history[0].ver}${d.locked?` · 🔒 ${d.locked} 編輯中`:''}</span>`;
+}
+const statusStroke={red:'#d1242f', yellow:'#d4a72c', green:'#1a7f37'};
+
+function cloudPath(cx,cy,r){
+  // 雲朵形 revision cloud
+  let p='', n=10;
+  for(let i=0;i<n;i++){
+    const a1=(i/n)*Math.PI*2, a2=((i+1)/n)*Math.PI*2;
+    const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+    p+=(i===0?`M ${x1} ${y1} `:'')+`A ${r*0.36} ${r*0.36} 0 0 1 ${x2} ${y2} `;
+  }
+  return p;
+}
+
+function sheetSVG(code){
+  // 依圖號畫不同的示意平面
+  let body='';
+  if(code==='A-201'){
+    body=`
+      <rect x="80" y="90" width="640" height="380" fill="none" stroke="#1f2328" stroke-width="3"/>
+      ${[0,1,2,3,4,5,6,7].map(i=>`
+        <line x1="${120+i*80}" y1="70" x2="${120+i*80}" y2="480" stroke="#c8ccd2" stroke-width="1" stroke-dasharray="8 5"/>
+        <circle cx="${120+i*80}" cy="58" r="13" fill="none" stroke="#59636e"/>
+        <text x="${120+i*80}" y="62" text-anchor="middle" font-size="11" fill="#59636e">C${i+1}</text>
+        ${[0,1,2,3].map(j=>`<rect x="${115+i*80}" y="${115+j*100}" width="12" height="12" fill="#1f2328"/>`).join('')}
+      `).join('')}
+      <line x1="80" y1="280" x2="500" y2="280" stroke="#1f2328" stroke-width="2"/>
+      <rect x="500" y="230" width="130" height="110" fill="none" stroke="#1f2328" stroke-width="2"/>
+      <text x="565" y="290" text-anchor="middle" font-size="12" fill="#59636e">廁所</text>
+      <path d="M 200 280 A 40 40 0 0 1 240 320" fill="none" stroke="#59636e"/>
+      <line x1="200" y1="280" x2="200" y2="320" stroke="#59636e"/>
+      <circle cx="560" cy="182" r="6" fill="none" stroke="#1f2328" stroke-width="1.6"/>
+      <line x1="554" y1="176" x2="566" y2="188" stroke="#1f2328" stroke-width="1.2"/>
+      <text x="576" y="170" font-size="10" fill="#59636e">落水頭</text>`;
+  }else if(code==='A-501'){
+    body=`
+      <rect x="120" y="100" width="420" height="330" fill="none" stroke="#1f2328" stroke-width="3"/>
+      ${[0,1,2].map(i=>`<line x1="${225+i*105}" y1="100" x2="${225+i*105}" y2="360" stroke="#1f2328" stroke-width="2"/>`).join('')}
+      <line x1="120" y1="360" x2="540" y2="360" stroke="#1f2328" stroke-width="2"/>
+      ${[0,1,2,3].map(i=>`<ellipse cx="${172+i*105}" cy="300" rx="22" ry="30" fill="none" stroke="#59636e" stroke-width="1.4"/>`).join('')}
+      <text x="330" y="410" text-anchor="middle" font-size="13" fill="#59636e">廁所隔間大樣 S=1/30</text>
+      <line x1="290" y1="130" x2="330 " y2="130" stroke="#d1242f" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="640" y="140" font-size="11" fill="#59636e">C11</text>
+      <rect x="600" y="120" width="90" height="240" fill="none" stroke="#c8ccd2" stroke-dasharray="6 4"/>`;
+  }else{
+    body=`
+      <rect x="80" y="90" width="640" height="380" fill="none" stroke="#1f2328" stroke-width="3"/>
+      ${[0,1,2].map(i=>`<rect x="${140+i*180}" y="140" width="110" height="70" fill="none" stroke="#1f2328" stroke-width="2"/><text x="${195+i*180}" y="180" text-anchor="middle" font-size="11" fill="#59636e">配電盤 P${i+1}</text>`).join('')}
+      <rect x="470" y="270" width="140" height="80" fill="none" stroke="#1f2328" stroke-width="2"/>
+      <text x="540" y="312" text-anchor="middle" font-size="11" fill="#59636e">洗床機 ×3</text>
+      <line x1="140" y1="240" x2="540" y2="270" stroke="#59636e" stroke-dasharray="5 4"/>`;
+  }
+  // markers：這張圖對應的 requests
+  const marks=requests.filter(r=>r.drawing===code).map(r=>`
+    <g class="marker ${curReq&&curReq!==r.id?'dim':''}" data-req="${r.id}" onclick="selectReq('${r.id}')">
+      <path class="cloud" d="${cloudPath(r.pos.x, r.pos.y, 44)}" stroke="${statusStroke[r.status]}"/>
+      <circle cx="${r.pos.x+38}" cy="${r.pos.y-38}" r="13" fill="${statusStroke[r.status]}"/>
+      <text x="${r.pos.x+38}" y="${r.pos.y-33.5}" text-anchor="middle" fill="#fff">${r.marker}</text>
+    </g>`).join('');
+  const d=drawings[code];
+  return `<svg viewBox="0 0 800 560" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#d1242f"/></marker></defs>
+    <rect x="14" y="14" width="772" height="532" fill="none" stroke="#1f2328" stroke-width="1.5"/>
+    ${body}
+    <rect x="540" y="496" width="246" height="50" fill="none" stroke="#1f2328"/>
+    <line x1="640" y1="496" x2="640" y2="546" stroke="#1f2328"/>
+    <text x="555" y="516" font-size="11" fill="#59636e">圖號 ${d.code}</text>
+    <text x="555" y="536" font-size="11" fill="#59636e">${d.name}</text>
+    <text x="655" y="516" font-size="11" fill="#59636e">版次 ${d.history[0].ver}</text>
+    <text x="655" y="536" font-size="11" fill="#59636e">${d.building}</text>
+    ${marks}
+  </svg>`;
+}
+function renderSheet(){document.getElementById('sheet').innerHTML=sheetSVG(curDwg);}
+function renderHist(){
+  const d=drawings[curDwg];
+  document.getElementById('hist-list').innerHTML=d.history.map(h=>`
+    <div class="hist-item ${h.isNew?'new':''}">
+      <span class="hist-ver">${h.ver}</span>
+      <span class="hist-note">${h.note} <span style="font-family:var(--mono);font-size:11px;color:var(--accent)">${h.req}</span></span>
+      <span class="hist-who">${h.date} · 設計 ${h.designer} · 核可 ${h.approver}</span>
+    </div>`).join('');
+}
+
+/* ═══════════════ 收件匣 ═══════════════ */
+function renderInbox(){
+  const el=document.getElementById('msg-list');
+  const raw=messages.filter(m=>m.state==='raw').length;
+  const badge=document.getElementById('inbox-badge');
+  badge.textContent=raw; badge.style.display=raw?'grid':'none';
+  el.innerHTML=messages.map(m=>{
+    let foot='';
+    if(m.state==='done'){
+      foot=`<span class="done-chip">✓ 已轉為 <a onclick="switchView('work');selectReq('${m.linked}')">${m.linked}</a></span>`;
+    }else{
+      foot=`<button class="extract-btn" onclick="extractMsg('${m.id}')">✨ AI 萃取 → 產生 Request</button>
+        <div class="thinking" id="think-${m.id}"><div class="spinner"></div>辨識專案・圖號・位置對應中…</div>
+        <div class="extract-result" id="res-${m.id}">
+          <div class="ai-tag">✨ AI 萃取結果 <span class="conf">（信心度 ${m.parsed.conf}，標錯可人工拖曳修正 → 成為訓練資料）</span></div>
+          <dl class="parse-grid">
+            <dt>專案</dt><dd><b>${m.parsed.proj}</b></dd>
+            <dt>建物</dt><dd>${m.parsed.bld}</dd>
+            <dt>對應圖面</dt><dd><b>${m.parsed.dwg}</b></dd>
+            <dt>圖上位置</dt><dd>${m.parsed.pos}</dd>
+            <dt>要求內容</dt><dd>${m.parsed.act}</dd>
+          </dl>
+          <button class="btn btn-primary" style="margin-top:10px" onclick="createReq('${m.id}')">＋ 確認建立 Request（🔴）</button>
+        </div>`;
+    }
+    return `<div class="msg-card" id="msg-${m.id}">
+      <div class="msg-head">
+        <div class="src-icon ${m.cls}">${m.icon}</div>
+        <div><div class="msg-from">${m.from}</div><div class="msg-sub">${m.sub}</div></div>
+        <div class="msg-time">${m.time}</div>
+      </div>
+      <div class="msg-body">${m.body}</div>
+      ${foot}
+    </div>`;
+  }).join('');
+}
+function extractMsg(id){
+  const think=document.getElementById('think-'+id);
+  const btnCard=document.querySelector(`#msg-${id} .extract-btn`);
+  btnCard.disabled=true; btnCard.style.opacity=.5;
+  think.classList.add('show');
+  setTimeout(()=>{
+    think.classList.remove('show');
+    document.getElementById('res-'+id).classList.add('show');
+  },1200);
+}
+function createReq(id){
+  const m=messages.find(x=>x.id===id);
+  m.state='done';
+  const newId='REQ-0'+(reqSeq++);
+  m.linked=newId;
+  const dwgCode = m.id==='MSG-3' ? 'A-201' : 'A-201'; // 原型：都掛示意圖
+  requests.unshift({
+    id:newId, status:'red', drawing:dwgCode,
+    title:m.parsed.act,
+    pos:{x:180+Math.random()*80, y:400}, marker:String.fromCharCode(68+(reqSeq%20)),
+    source:{type:m.type, icon:m.icon, from:m.from, quote:m.body},
+    requester:m.from.includes('筆記')?'王副理（口頭）':m.from, designer:'我（阿勳）', due:'07/25',
+    refs:['📄 AI 建議參考：'+(m.id==='MSG-3'?'各類場所消防安全設備設置標準':'室內裝修材料防火等級規範')],
+    log:[{t:now(), e:'AI 從'+(m.type==='note'?'筆記':'會議記錄')+'萃取建立 Request'}],
+    localCopy:false
+  });
+  toast(`🔴 已建立 ${newId} 並指派給 Designer，連結至 ${dwgCode}`);
+  renderInbox(); renderList();
+}
+
+/* ═══════════════ 檔案庫 ═══════════════ */
+function renderFiles(){
+  const cad=document.getElementById('cad-files'), pdf=document.getElementById('pdf-files');
+  cad.innerHTML=Object.values(drawings).map(d=>`
+    <div class="file-row" onclick="switchView('work');setDwg('${d.code}')">
+      📄 <span class="file-name">${d.file}</span>
+      ${d.locked?`<span class="lock">🔒 ${d.locked} 編輯中（local copy）</span>`:''}
+      <span class="ver-pill">${d.history[0].ver}</span>
+    </div>`).join('');
+  pdf.innerHTML=Object.values(drawings).flatMap(d=>d.history.slice(0,2).map((h,i)=>`
+    <div class="file-row" onclick="switchView('work');setDwg('${d.code}')">
+      🧾 <span class="file-name">${d.code}_${h.ver}.pdf</span>
+      ${i===0?'<span class="tag" style="margin-left:4px">現行版</span>':'<span style="font-size:11px;color:var(--muted)">已作廢</span>'}
+      <span class="ver-pill">${h.date}</span>
+    </div>`)).join('');
+}
+
+/* ═══════════════ 工具 ═══════════════ */
+function toast(msg){
+  const t=document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(()=>{t.style.transition='opacity .4s'; t.style.opacity=0; setTimeout(()=>t.remove(),400);},3800);
+}
+function renderAll(){renderList(); renderDetail(); renderSheet(); renderHist(); renderDwgTabs(); renderFiles(); renderInbox();}
+renderAll();
+</script>
+</body>
+</html>
