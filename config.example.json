@@ -1,0 +1,15 @@
+{
+  "currentUser": "你的名字",
+  "port": 8734,
+  "currentProject": "928816",
+  "projects": [
+    {
+      "id": "928816",
+      "name": "928816 · 竹北廠區新建工程",
+      "cadDir": "sample/01_作業檔",
+      "pdfDir": "sample/02_出圖檔",
+      "mailDir": "sample/inbox/mail",
+      "noteDir": "sample/inbox/notes"
+    }
+  ]
+}

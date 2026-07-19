@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ArchiHub — 工程圖面的 GitHub</title>
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 
 <header>
   <div class="logo"><div class="mark">📐</div>ArchiHub</div>
-  <div class="proj-pill">928816 · 竹北廠區新建工程</div>
+  <select class="proj-select" id="proj-select" onchange="onProjSelect(this.value)" title="切換專案"></select>
   <div class="spacer"></div>
   <nav class="nav-tabs">
     <button class="nav-tab" data-view="inbox" onclick="switchView('inbox')">📥 收件匣 <span class="badge" id="inbox-badge" style="display:none">0</span></button>
@@ -34,7 +34,7 @@
       <div id="req-list"></div>
     </div>
 
-    <div class="pane-mid">
+    <div class="pane pane-mid">
       <div class="viewer-bar" id="dwg-tabs"></div>
       <div class="hint-bar" id="hint-bar">🖐 拖曳雲朵標記可修正位置——每次修正都會記錄為訓練資料</div>
       <div class="viewer-wrap"><div class="sheet" id="sheet"><div class="canvas-stack" id="canvas-stack"></div></div></div>
@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <div class="pane-right">
+    <div class="pane pane-right">
       <div class="pane-head">Request 詳情</div>
       <div id="detail"><div class="detail-empty">← 點選左側任一 Request<br>查看詳情與圖面對應位置</div></div>
     </div>
@@ -54,7 +54,7 @@
   <div class="view" id="view-inbox">
     <div class="page-wrap">
       <h1>📥 訊息收件匣</h1>
-      <div class="page-sub">讀取本地收件匣資料夾（<span id="inbox-path" style="font-family:var(--mono)"></span>）的文字檔——Email 轉存、會議記錄、工地筆記都丟進來。萃取後轉為圖面 Request。<b>≈ GitHub Issue 的自動化入口</b></div>
+      <div class="page-sub">兩個 Request 來源：📧 信件（<span id="mail-path" style="font-family:var(--mono)"></span>）與 📝 筆記（<span id="note-path" style="font-family:var(--mono)"></span>）。萃取後轉為圖面 Request。<b>≈ GitHub Issue 的自動化入口</b></div>
       <div id="msg-list"></div>
     </div>
   </div>
@@ -98,15 +98,43 @@
 <!-- ═══ 設定 ═══ -->
 <div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
   <div class="modal">
-    <h2>⚙ 資料夾與身分設定</h2>
-    <div class="sub">路徑可為絕對路徑（如 D:\案件\928816\CAD）或相對於專案的路徑。儲存後立即生效。</div>
-    <div class="form-grid" style="grid-template-columns:110px 1fr;">
-      <label>我的名字</label><input id="cfg-user">
-      <label>CAD 作業檔資料夾</label><input id="cfg-cad">
-      <label>PDF 出圖資料夾</label><input id="cfg-pdf">
-      <label>收件匣資料夾</label><input id="cfg-inbox">
+    <h2 id="settings-title">⚙ 設定</h2>
+    <div class="sub" id="settings-sub">身分、專案資料夾、Request 來源分區設定，儲存後立即生效。</div>
+
+    <div class="settings-tabs">
+      <button class="settings-tab active" data-s="identity" onclick="setSettingsTab('identity')">👤 身分</button>
+      <button class="settings-tab" data-s="folders" onclick="setSettingsTab('folders')">📁 專案資料夾</button>
+      <button class="settings-tab" data-s="sources" onclick="setSettingsTab('sources')">📨 Request 來源</button>
     </div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="saveConfig()">儲存設定</button>
+
+    <!-- 身分 -->
+    <div class="settings-sec active" id="sec-identity">
+      <div class="sec-desc">你的名字決定「🔧 待辦作業」（我是 Designer）與「👁 待我確認」（我是 Requester）的歸屬。</div>
+      <div class="form-grid" style="grid-template-columns:110px 1fr;">
+        <label>我的名字</label><input id="cfg-user">
+      </div>
+    </div>
+
+    <!-- 專案資料夾 -->
+    <div class="settings-sec" id="sec-folders">
+      <div class="sec-desc">每個專案有自己的資料夾。路徑可為絕對路徑（如 D:\案件\928816\CAD）或相對於 ArchiHub 的路徑。</div>
+      <div class="form-grid" style="grid-template-columns:130px 1fr;">
+        <label>專案名稱</label><input id="cfg-name" placeholder="例：928816 · 竹北廠區新建工程">
+        <label>CAD 作業檔資料夾</label><input id="cfg-cad" placeholder="放 .dwg / .rvt / .dxf 的資料夾">
+        <label>PDF 出圖資料夾</label><input id="cfg-pdf" placeholder="正式出圖 PDF，檔名需含圖號（如 A-201）">
+      </div>
+    </div>
+
+    <!-- Request 來源 -->
+    <div class="settings-sec" id="sec-sources">
+      <div class="sec-desc">收件匣會讀取這些資料夾的 .txt / .md 檔。信件：把 Email 內容轉存丟入；筆記：口頭交代、工地手記自己記下丟入。</div>
+      <div class="form-grid" style="grid-template-columns:130px 1fr;">
+        <label>📧 信件資料夾</label><input id="cfg-mail" placeholder="Email 轉存的文字檔">
+        <label>📝 筆記資料夾</label><input id="cfg-note" placeholder="工地筆記、口頭交代記錄">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="margin-top:16px" onclick="saveSettings()">儲存設定</button>
     <button class="btn btn-ghost close" onclick="closeModal('settings-modal')">取消</button>
   </div>
 </div>
@@ -119,6 +147,6 @@
     return lib;
   }).catch(err => { console.error('pdf.js 載入失敗', err); return null; });
 </script>
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

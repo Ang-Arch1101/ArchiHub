@@ -1,5 +1,8 @@
 __pycache__/
-data/corrections.jsonl
 *.pyc
 .DS_Store
 Thumbs.db
+
+# Runtime 資料與個人設定（不進版控；首次啟動自動從 sample/seed 與預設值建立）
+data/
+config.json
