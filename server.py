@@ -236,8 +236,9 @@ def latest_pdf_for(code, pdf_dir):
     return max(cands, key=lambda f: f.stat().st_mtime) if cands else None
 
 
-def transition(pid, req_id, action, actor):
+def transition(pid, req_id, action, actor, payload=None):
     proj = cur_project()
+    payload = payload or {}
     db = db_requests(pid)
     req = next((r for r in db["requests"] if r["id"] == req_id), None)
     if not req:
@@ -248,6 +249,7 @@ def transition(pid, req_id, action, actor):
 
     if action == "accept" and req["status"] == "red":
         req["localCopy"] = True
+        req.pop("declined", None)  # 接受＝已釐清，清除先前的任務拒絕記號
         req["log"].append({"t": now_str(), "e": f"{actor} 接受任務，建立本地副本（≈ git clone）"})
         cad = next((f for f in scan_files(proj["cadDir"], {".dwg", ".rvt", ".dxf"}) if f["code"] == code), None)
         opened = open_local(proj, "cad", cad["name"]) if cad else {"ok": False}
@@ -290,7 +292,41 @@ def transition(pid, req_id, action, actor):
         })
         save_json(proj_data_dir(pid) / "history.json", hist)
         req["log"].append({"t": now_str(), "e": f"{req['requester']} 確認 → 正式進版 {new_ver}（≈ merge），已通知所有人舊版作廢"})
+        req.pop("rework", None)  # 結案，清除退回溝通記號
         msg = f"🟢 {code} 正式進版 {new_ver}" + (f"，已產生 {new_pdf}" if new_pdf else "")
+
+    elif action == "reject" and req["status"] == "yellow":
+        # 退回重修：🟡 → 🔴，帶原因與圖上「問題位置」標註，交回 designer 繼續改
+        req["status"] = "red"
+        reason = (payload.get("reason") or "").strip()
+        pos = payload.get("pos") or {}
+        rework_pos = ({"nx": round(float(pos["nx"]), 4), "ny": round(float(pos["ny"]), 4)}
+                      if "nx" in pos and "ny" in pos else None)
+        rnd = (req.get("rework") or {}).get("round", 0) + 1
+        req["rework"] = {"round": rnd, "reason": reason, "pos": rework_pos, "by": actor, "t": now_str()}
+        req["log"].append({"t": now_str(),
+                           "e": f"{actor} 退回重修（第 {rnd} 輪）：{reason or '（未填原因）'}"})
+        append_jsonl(proj_data_dir(pid) / "corrections.jsonl", {
+            "ts": datetime.now().isoformat(timespec="seconds"),
+            "kind": "rework_reject",
+            "req": req["id"], "drawing": code, "text": req["title"],
+            "reason": reason, "pos": rework_pos, "round": rnd, "user": actor,
+        })
+        msg = f"↩ {req_id} 已退回 {req['designer']} 重修（第 {rnd} 輪）"
+
+    elif action == "decline" and req["status"] == "red":
+        # 任務拒絕：designer 認為需求不清/不合理，退回 requester 要求釐清（前端另開回信）
+        reason = (payload.get("reason") or "").strip()
+        req["declined"] = {"reason": reason, "by": actor, "t": now_str()}
+        req["log"].append({"t": now_str(),
+                           "e": f"{actor} 拒絕任務，退回 {req['requester']} 要求釐清：{reason or '（未填原因）'}"})
+        append_jsonl(proj_data_dir(pid) / "corrections.jsonl", {
+            "ts": datetime.now().isoformat(timespec="seconds"),
+            "kind": "task_decline",
+            "req": req["id"], "drawing": code, "text": req["title"],
+            "reason": reason, "user": actor,
+        })
+        msg = f"⛔ {req_id} 已退回 {req['requester']}，請於信件中說明疑問"
 
     else:
         return {"ok": False, "error": f"狀態 {req['status']} 不允許動作 {action}"}
@@ -418,8 +454,8 @@ class Handler(SimpleHTTPRequestHandler):
 
         if path == "/api/requests":
             self._json(create_request(pid, body))
-        elif m := re.match(r"^/api/requests/(REQ-\d+)/(accept|submit|confirm)$", path):
-            self._json(transition(pid, m.group(1), m.group(2), body.get("actor") or cfg["currentUser"]))
+        elif m := re.match(r"^/api/requests/(REQ-\d+)/(accept|submit|confirm|reject|decline)$", path):
+            self._json(transition(pid, m.group(1), m.group(2), body.get("actor") or cfg["currentUser"], body))
         elif m := re.match(r"^/api/requests/(REQ-\d+)/pos$", path):
             # 更新標註位置（正規化座標 0~1），並記錄人工修正 → 訓練資料
             db = db_requests(pid)

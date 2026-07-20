@@ -1,4 +1,6 @@
 __pycache__/
+data/corrections.jsonl
+synthetic-data-gen/output.zip
 *.pyc
 .DS_Store
 Thumbs.db

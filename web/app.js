@@ -6,6 +6,8 @@ let curTab = 'todo', curReq = null, curDwg = null;
 let extractOpen = null; // 收件匣展開中的萃取表單（避免輪詢時蓋掉）
 let placing = null;     // 重新定位模式：等待在圖上點擊的 request id
 let dragging = null;    // 拖曳中的標記狀態
+let reworkDraft = null; // 退回重修草稿：{ id, pos } —— 表單開啟中，等在圖上點問題位置
+let declineOpen = null; // 任務拒絕表單展開中的 request id
 let pdfView = { code: null, pdfName: null, w: 800, h: 560, ok: false }; // 目前渲染的 PDF
 
 const statusName = { red: '🔴 待處理', yellow: '🟡 待確認', green: '🟢 已進版' };
@@ -152,18 +154,47 @@ function renderDetail() {
   let actions = '';
   if (r.status === 'red') {
     if (iAmDesigner) {
-      actions = r.localCopy
-        ? `<div class="local-note">💾 本地副本編輯中${cadFile ? `：<span style="font-family:var(--mono)">${cadFile.name}</span>` : ''}</div>
-           ${cadFile ? `<button class="btn btn-ghost" onclick="openFile('cad','${cadFile.name}')">📂 再次開啟 CAD 檔</button>` : ''}
-           <button class="btn btn-warn" onclick="doAction('${r.id}','submit')">⬆ 完成並提交（自動出 PDF）</button>`
-        : `<button class="btn btn-accent" onclick="doAction('${r.id}','accept')">▶ 接受任務・前往修改（開啟 CAD 本地副本）</button>`;
+      if (r.declined) {
+        // 已拒絕：等 requester 釐清，可再次回信或（釐清後）接受
+        actions = `<div class="local-note decline">⛔ 已退回 ${r.requester} 要求釐清：「${esc(r.declined.reason) || '（未填原因）'}」</div>
+          ${replyBtnHtml(r)}
+          <button class="btn btn-accent" onclick="doAction('${r.id}','accept')">▶ 已釐清・接受任務（開啟 CAD 本地副本）</button>`;
+      } else {
+        const primary = r.localCopy
+          ? `<div class="local-note">💾 本地副本編輯中${cadFile ? `：<span style="font-family:var(--mono)">${cadFile.name}</span>` : ''}</div>
+             ${cadFile ? `<button class="btn btn-ghost" onclick="openFile('cad','${cadFile.name}')">📂 再次開啟 CAD 檔</button>` : ''}
+             <button class="btn btn-warn" onclick="doAction('${r.id}','submit')">⬆ 完成並提交（自動出 PDF）</button>`
+          : `<button class="btn btn-accent" onclick="doAction('${r.id}','accept')">▶ 接受任務・前往修改（開啟 CAD 本地副本）</button>`;
+        const declineUi = declineOpen === r.id
+          ? `<div class="decline-box">
+               <div class="rb-head">⛔ 拒絕任務並回信詢問 ${r.requester}</div>
+               <textarea id="decline-reason-${r.id}" placeholder="說明疑問（例如：需求範圍不清，想確認是哪一支柱？）"></textarea>
+               <button class="btn btn-danger" onclick="submitDecline('${r.id}')">送出並開啟回信</button>
+               <button class="btn btn-ghost" onclick="toggleDecline(null)">取消</button>
+             </div>`
+          : `<button class="btn btn-ghost" onclick="toggleDecline('${r.id}')">⛔ 拒絕・退回詢問 Requester</button>`;
+        actions = primary + declineUi;
+      }
     } else {
-      actions = `<div class="local-note wait">⏳ 等待 ${r.designer} 接受並修改</div>`;
+      actions = r.declined
+        ? `<div class="local-note decline">⛔ ${r.designer} 已退回並要求釐清：「${esc(r.declined.reason) || '（未填原因）'}」</div>`
+        : `<div class="local-note wait">⏳ 等待 ${r.designer} 接受並修改</div>`;
     }
   } else if (r.status === 'yellow') {
     if (iAmRequester) {
-      actions = `${r.pendingPdf ? `<button class="btn btn-ghost" onclick="openFile('pdf','${r.pendingPdf}')">🧾 檢視提交的 PDF（${r.pendingPdf}）</button>` : ''}
-        <button class="btn btn-primary" onclick="doAction('${r.id}','confirm')">✓ 確認符合要求 → 正式進版</button>`;
+      if (reworkDraft && reworkDraft.id === r.id) {
+        actions = `<div class="rework-box">
+            <div class="rb-head">↩ 退回重修給 ${r.designer}</div>
+            <div class="rb-hint" id="rework-pos-${r.id}">${reworkDraft.pos ? '📍 已標記問題位置 ✓（可再點一次修改）' : '📍 請在左側圖面點出要修改的位置（可選）'}</div>
+            <textarea id="rework-reason-${r.id}" placeholder="說明哪裡不符要求（例如：移的方向反了，是往西不是往東）"></textarea>
+            <button class="btn btn-danger" onclick="submitRework('${r.id}')">送出退回</button>
+            <button class="btn btn-ghost" onclick="cancelRework()">取消</button>
+          </div>`;
+      } else {
+        actions = `${r.pendingPdf ? `<button class="btn btn-ghost" onclick="openFile('pdf','${r.pendingPdf}')">🧾 檢視提交的 PDF（${r.pendingPdf}）</button>` : ''}
+          <button class="btn btn-primary" onclick="doAction('${r.id}','confirm')">✓ 確認符合要求 → 正式進版</button>
+          <button class="btn btn-danger" onclick="startRework('${r.id}')">↩ 退回重修（標問題位置＋原因）</button>`;
+      }
     } else {
       actions = `<div class="local-note wait">⏳ Pending — 等待 ${r.requester} 檢查確認</div>`;
     }
@@ -179,6 +210,11 @@ function renderDetail() {
         <div class="src-head">${r.source.icon || '✉'} 來源：${r.source.from || '—'}</div>
         ${r.source.quote ? `<blockquote>「${r.source.quote}」</blockquote>` : ''}
       </div>
+      ${(r.rework && r.status !== 'green') ? `<div class="rework-note">
+        <div class="rn-head">↩ 第 ${r.rework.round} 輪退回 · ${r.rework.by} · ${r.rework.t}</div>
+        <div class="rn-body">「${esc(r.rework.reason) || '（未填原因）'}」</div>
+        ${r.rework.pos ? '<div class="rn-tag">📍 圖上紫色 ↩ 標記即指定的問題位置</div>' : ''}
+      </div>` : ''}
       <dl class="kv">
         <dt>對應圖面</dt><dd><a onclick="setDwg('${r.drawing}')">${r.drawing} ${(S.history[r.drawing] || {}).name || ''}</a></dd>
         <dt>Requester</dt><dd>${r.requester}${r.requester === me() ? '（我）' : ''}</dd>
@@ -207,6 +243,71 @@ async function doAction(id, action) {
 async function openFile(type, name) {
   const r = await api('/api/open', { type, name });
   toast(r.ok ? `📂 已開啟 ${name}` : '⚠ ' + r.error);
+}
+
+/* ── 任務拒絕（designer 退回 requester）＋ 直達回信 ── */
+function parseEmail(from) {
+  if (!from) return null;
+  const m = from.match(/[〈<]\s*([^〉>\s]+@[^〉>\s]+)\s*[〉>]/); // 相容全形〈〉與半形<>
+  return m ? m[1] : null;
+}
+function replyBtnHtml(r) {
+  const email = parseEmail(r.source && r.source.from);
+  if (email) return `<button class="btn btn-ghost" onclick="openReply('${r.id}')">✉ 再次回信給 ${r.requester}（${email}）</button>`;
+  const kind = (r.source && r.source.type) === 'note' ? '現場筆記／口頭' : (r.source && r.source.type) || '此來源';
+  return `<div class="local-note wait">✉ ${kind}無 email 可回覆，請自行聯繫 ${r.requester}</div>`;
+}
+function openReplyMail(r, reason) {
+  const email = parseEmail(r.source && r.source.from);
+  if (!email) { toast(`✉ 此來源無 email，請自行聯繫 ${r.requester}`); return; }
+  const subject = `Re: ${r.title}（${r.id}）`;
+  const quote = ((r.source && r.source.quote) || '').trim();
+  const body =
+    `${r.requester} 您好，\n\n關於「${r.title}」這項需求，我這邊需要先釐清：\n${reason || '（請補充說明）'}\n\n再麻煩您回覆，謝謝。\n\n` +
+    `——— 原始需求 ———\n> ${quote}\n>（${r.id} / 對應圖面 ${r.drawing}）\n`;
+  const a = document.createElement('a');
+  a.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  a.click();
+}
+function toggleDecline(id) { declineOpen = id; renderDetail(); }
+async function submitDecline(id) {
+  const r = S.requests.find(x => x.id === id);
+  const reason = (document.getElementById('decline-reason-' + id).value || '').trim();
+  const res = await api(`/api/requests/${id}/decline`, { actor: me(), reason });
+  toast(res.ok ? res.message : '⚠ ' + res.error);
+  declineOpen = null;
+  if (res.ok) openReplyMail(r, reason);
+  await loadState();
+}
+function openReply(id) {
+  const r = S.requests.find(x => x.id === id);
+  openReplyMail(r, (r.declined && r.declined.reason) || '');
+}
+
+/* ── 退回重修（requester 退回 designer）＋ 圖上問題位置標註 ── */
+function startRework(id) {
+  reworkDraft = { id, pos: null };
+  const r = S.requests.find(x => x.id === id);
+  if (r && r.drawing in S.history) { curDwg = r.drawing; renderSheet(); }
+  const hint = document.getElementById('hint-bar');
+  hint.textContent = '↩ 退回模式：在圖面點出要修改的區塊，並在右側填寫退回原因';
+  hint.classList.add('placing');
+  document.querySelector('.viewer-wrap').classList.add('placing');
+  renderDetail();
+}
+function cancelRework() {
+  reworkDraft = null;
+  setPlacing(null); // 還原 hint-bar 與 viewer-wrap 樣式
+  renderDetail(); renderMarkers();
+}
+async function submitRework(id) {
+  const reason = (document.getElementById('rework-reason-' + id).value || '').trim();
+  if (!reason) { toast('⚠ 請填寫退回原因'); return; }
+  const res = await api(`/api/requests/${id}/reject`, { actor: me(), reason, pos: reworkDraft && reworkDraft.pos });
+  toast(res.ok ? res.message : '⚠ ' + res.error);
+  reworkDraft = null;
+  setPlacing(null);
+  await loadState();
 }
 
 /* ═══ 圖面 viewer（pdf.js 渲染真實 PDF ＋ 標註覆蓋層） ═══ */
@@ -303,7 +404,7 @@ function renderMarkers() {
   const overlay = document.getElementById('overlay');
   if (!overlay) return;
   const W = pdfView.w, H = pdfView.h, R = markerRadius();
-  overlay.innerHTML = S.requests.filter(r => r.drawing === pdfView.code && getPos(r)).map(r => {
+  const markers = S.requests.filter(r => r.drawing === pdfView.code && getPos(r)).map(r => {
     const p = getPos(r);
     const cx = p.nx * W, cy = p.ny * H;
     return `
@@ -314,6 +415,19 @@ function renderMarkers() {
       <text x="${R * 0.86}" y="${-R * 0.86 + R * 0.11}" text-anchor="middle" fill="#fff" font-size="${R * 0.32}">${r.marker}</text>
     </g>`;
   }).join('');
+  // 退回重修「問題位置」標記（紫色 ↩，純視覺，不攔截指標事件）
+  const reworkMark = (cx, cy, cls) => `
+    <g class="rework-marker ${cls}" transform="translate(${cx},${cy})">
+      <circle r="${R * 0.72}" fill="none" stroke="#8250df" stroke-width="${R * 0.09}" stroke-dasharray="${R * 0.28} ${R * 0.2}"/>
+      <text y="${R * 0.2}" text-anchor="middle" fill="#8250df" font-size="${R * 0.55}" font-weight="700">↩</text>
+    </g>`;
+  const persisted = S.requests
+    .filter(r => r.drawing === pdfView.code && r.status !== 'green' && r.rework && r.rework.pos)
+    .map(r => reworkMark(r.rework.pos.nx * W, r.rework.pos.ny * H, '')).join('');
+  const draft = (reworkDraft && reworkDraft.pos &&
+    (S.requests.find(r => r.id === reworkDraft.id) || {}).drawing === pdfView.code)
+    ? reworkMark(reworkDraft.pos.nx * W, reworkDraft.pos.ny * H, 'draft') : '';
+  overlay.innerHTML = markers + persisted + draft;
 }
 
 /* ── 標註互動：拖曳修正 / 點擊定位（人工修正 → corrections.jsonl 訓練資料） ── */
@@ -327,6 +441,14 @@ function overlayCoords(overlay, ev) {
 function bindOverlayEvents(overlay) {
   overlay.addEventListener('pointerdown', ev => {
     const g = ev.target.closest('.marker');
+    if (reworkDraft) {
+      // 退回模式：點哪就把「問題位置」標在哪（不寫 DB，送出退回時才一起送）
+      reworkDraft.pos = overlayCoords(overlay, ev);
+      renderMarkers();
+      const el = document.getElementById('rework-pos-' + reworkDraft.id);
+      if (el) el.textContent = '📍 已標記問題位置 ✓（可再點一次修改）';
+      return;
+    }
     if (placing) {
       // 重新定位模式：點哪標哪
       const p = overlayCoords(overlay, ev);
@@ -379,7 +501,11 @@ function setPlacing(id) {
     hint.classList.remove('placing');
   }
 }
-document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && placing) setPlacing(null); });
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  if (reworkDraft) cancelRework();
+  else if (placing) setPlacing(null);
+});
 function renderHist() {
   const d = S.history[curDwg] || { history: [] };
   document.getElementById('hist-list').innerHTML = d.history.map(h => `
@@ -519,5 +645,5 @@ function renderAll(first) {
 loadState(true);
 setInterval(() => {
   const modalOpen = document.querySelector('.modal-bg.show');
-  if (!modalOpen && !extractOpen && !dragging && !placing) loadState();
+  if (!modalOpen && !extractOpen && !dragging && !placing && !reworkDraft && !declineOpen) loadState();
 }, 8000);
