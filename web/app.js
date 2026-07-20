@@ -1,7 +1,7 @@
 /* ArchiHub 前端 — 對接本地後端 API（server.py） */
 'use strict';
 
-let S = { config: {}, requests: [], history: {}, files: { cad: [], pdf: [] }, inbox: [] };
+let S = { config: {}, project: {}, requests: [], history: {}, files: { cad: [], pdf: [] }, inbox: [] };
 let curTab = 'todo', curReq = null, curDwg = null;
 let extractOpen = null; // 收件匣展開中的萃取表單（避免輪詢時蓋掉）
 let placing = null;     // 重新定位模式：等待在圖上點擊的 request id
@@ -32,25 +32,69 @@ function switchView(v) {
   document.getElementById('view-' + v).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(x => x.classList.toggle('active', x.dataset.view === v));
 }
+/* ═══ 設定（分區：身分 / 專案資料夾 / Request 來源）═══ */
+let settingsMode = 'edit'; // 'edit' 編輯目前專案 | 'new' 新增專案
 function openModal(id) {
-  if (id === 'settings-modal') {
-    const c = S.config;
-    document.getElementById('cfg-user').value = c.currentUser || '';
-    document.getElementById('cfg-cad').value = c.cadDir || '';
-    document.getElementById('cfg-pdf').value = c.pdfDir || '';
-    document.getElementById('cfg-inbox').value = c.inboxDir || '';
-  }
-  document.getElementById(id).classList.add('show');
+  if (id === 'settings-modal') openSettings('edit');
+  else document.getElementById(id).classList.add('show');
 }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-async function saveConfig() {
-  const r = await api('/api/config', {
-    currentUser: document.getElementById('cfg-user').value.trim(),
+function openSettings(mode, tab) {
+  settingsMode = mode;
+  const p = mode === 'new' ? { name: '', cadDir: '', pdfDir: '', mailDir: '', noteDir: '' } : S.project;
+  document.getElementById('settings-title').textContent = mode === 'new' ? '➕ 新增專案' : '⚙ 設定';
+  document.getElementById('cfg-user').value = S.config.currentUser || '';
+  document.getElementById('cfg-name').value = p.name || '';
+  document.getElementById('cfg-cad').value = p.cadDir || '';
+  document.getElementById('cfg-pdf').value = p.pdfDir || '';
+  document.getElementById('cfg-mail').value = p.mailDir || '';
+  document.getElementById('cfg-note').value = p.noteDir || '';
+  setSettingsTab(tab || (mode === 'new' ? 'folders' : 'identity'));
+  document.getElementById('settings-modal').classList.add('show');
+}
+function setSettingsTab(t) {
+  document.querySelectorAll('.settings-tab').forEach(x => x.classList.toggle('active', x.dataset.s === t));
+  document.querySelectorAll('.settings-sec').forEach(x => x.classList.toggle('active', x.id === 'sec-' + t));
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+  if (id === 'settings-modal' && document.getElementById('proj-select').value === '__new') renderProjSelect();
+}
+async function saveSettings() {
+  const user = document.getElementById('cfg-user').value.trim();
+  if (user && user !== S.config.currentUser) await api('/api/config', { currentUser: user });
+  const proj = {
+    id: settingsMode === 'new' ? '' : S.project.id,
+    name: document.getElementById('cfg-name').value.trim(),
     cadDir: document.getElementById('cfg-cad').value.trim(),
     pdfDir: document.getElementById('cfg-pdf').value.trim(),
-    inboxDir: document.getElementById('cfg-inbox').value.trim(),
-  });
-  if (r.ok) { toast('⚙ 設定已儲存'); closeModal('settings-modal'); loadState(); }
+    mailDir: document.getElementById('cfg-mail').value.trim(),
+    noteDir: document.getElementById('cfg-note').value.trim(),
+  };
+  const r = await api('/api/project/save', proj);
+  if (r.ok) {
+    toast(settingsMode === 'new' ? `➕ 已建立專案並切換過去` : '⚙ 設定已儲存');
+    document.getElementById('settings-modal').classList.remove('show');
+    curReq = null; curDwg = null;
+    loadState();
+  } else toast('⚠ ' + r.error);
+}
+
+/* ═══ 專案切換（左上角）═══ */
+function renderProjSelect() {
+  const sel = document.getElementById('proj-select');
+  sel.innerHTML = (S.config.projects || []).map(p =>
+    `<option value="${p.id}" ${p.id === S.config.currentProject ? 'selected' : ''}>${esc(p.name)}</option>`
+  ).join('') + `<option value="__new">＋ 新增專案…</option>`;
+}
+async function onProjSelect(v) {
+  if (v === '__new') { openSettings('new'); return; }
+  const r = await api('/api/project/switch', { id: v });
+  if (r.ok) {
+    curReq = null; curDwg = null; extractOpen = null;
+    toast('已切換專案');
+    await loadState();
+    setTab('todo');
+  } else toast('⚠ ' + r.error);
 }
 
 /* ═══ 左欄頁籤：待辦 / 待我確認 / 全部 ═══ */
@@ -484,9 +528,11 @@ function guessParse(m) {
   };
 }
 function isLinked(m) { return S.requests.find(r => r.source && r.source.from === m.file); }
+const SRC_META = { mail: { icon: '📧', cls: 'src-email', label: '信件' }, note: { icon: '📝', cls: 'src-note', label: '筆記' } };
 function renderInbox() {
   const el = document.getElementById('msg-list');
-  document.getElementById('inbox-path').textContent = S.config.inboxDir || '';
+  document.getElementById('mail-path').textContent = S.project.mailDir || '未設定';
+  document.getElementById('note-path').textContent = S.project.noteDir || '未設定';
   const raw = S.inbox.filter(m => !isLinked(m)).length;
   const badge = document.getElementById('inbox-badge');
   badge.textContent = raw; badge.style.display = raw ? 'grid' : 'none';
@@ -512,10 +558,11 @@ function renderInbox() {
           <button class="btn btn-primary" style="margin-top:10px" onclick="createReq('${m.file}')">＋ 確認建立 Request（🔴）</button>
         </div>`;
     }
+    const sm = SRC_META[m.src] || { icon: '📄', cls: '', label: '檔案' };
     return `<div class="msg-card">
       <div class="msg-head">
-        <div class="src-icon">📄</div>
-        <div><div class="msg-from">${m.file}</div></div>
+        <div class="src-icon ${sm.cls}">${sm.icon}</div>
+        <div><div class="msg-from">${m.file}</div><div class="msg-sub-label">${sm.label}來源</div></div>
         <div class="msg-time">${m.mtime}</div>
       </div>
       <div class="msg-body">${esc(m.body)}</div>
@@ -537,14 +584,15 @@ function extractMsg(file) {
 async function createReq(file) {
   const id = cssId(file);
   const m = S.inbox.find(x => x.file === file);
+  const sm = SRC_META[m.src] || { icon: '📄', label: '檔案' };
   const r = await api('/api/requests', {
     title: document.getElementById('f-title-' + id).value.trim(),
     drawing: document.getElementById('f-dwg-' + id).value,
     designer: document.getElementById('f-designer-' + id).value.trim() || me(),
     due: document.getElementById('f-due-' + id).value.trim(),
     requester: me(),
-    source: { type: 'file', icon: '📄', from: m.file, quote: m.body.slice(0, 120) },
-    sourceLabel: '收件匣檔案 ' + m.file,
+    source: { type: m.src || 'file', icon: sm.icon, from: m.file, quote: m.body.slice(0, 120) },
+    sourceLabel: sm.label + ' ' + m.file,
     pos: { nx: 0.12, ny: 0.85 },
   });
   extractOpen = null;
@@ -562,8 +610,8 @@ async function createReq(file) {
 
 /* ═══ 檔案庫（讀本地資料夾） ═══ */
 function renderFiles() {
-  document.getElementById('cad-path').textContent = S.config.cadDir || '';
-  document.getElementById('pdf-path').textContent = S.config.pdfDir || '';
+  document.getElementById('cad-path').textContent = S.project.cadDir || '';
+  document.getElementById('pdf-path').textContent = S.project.pdfDir || '';
   const lockedCodes = new Set(S.requests.filter(r => r.localCopy && r.status !== 'green').map(r => r.drawing));
   document.getElementById('cad-files').innerHTML = S.files.cad.map(f => `
     <div class="file-row" onclick="openFile('cad','${esc(f.name)}')">
@@ -589,6 +637,7 @@ function toast(msg) {
   setTimeout(() => { t.style.transition = 'opacity .4s'; t.style.opacity = 0; setTimeout(() => t.remove(), 400); }, 3800);
 }
 function renderAll(first) {
+  renderProjSelect();
   renderList(); renderDetail(); renderDwgTabs(); renderSheet(); renderHist(); renderInbox(); renderFiles();
   if (first) setTab('todo');
 }

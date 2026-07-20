@@ -18,7 +18,12 @@ body{
 header{display:flex; align-items:center; gap:16px; padding:0 16px; height:56px; background:#0d1117; color:#fff; flex-shrink:0;}
 .logo{display:flex; align-items:center; gap:8px; font-weight:700; font-size:16px;}
 .logo .mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#2f81f7,#8250df);display:grid;place-items:center;font-size:15px;}
-.proj-pill{font-size:12.5px; background:#21262d; border:1px solid #30363d; color:#c9d1d9; padding:4px 12px; border-radius:999px; font-family:var(--mono);}
+.proj-select{
+  font-size:12.5px; background:#21262d; border:1px solid #30363d; color:#c9d1d9;
+  padding:5px 10px; border-radius:999px; font-family:var(--mono); cursor:pointer; max-width:300px;
+}
+.proj-select:hover{border-color:#8b949e;}
+.proj-select option{background:#21262d; color:#c9d1d9;}
 header .spacer{flex:1;}
 .nav-tabs{display:flex; gap:4px;}
 .nav-tab{background:none; border:none; color:#c9d1d9; font-size:13.5px; padding:7px 14px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:6px; font-family:inherit;}
@@ -32,6 +37,8 @@ main{flex:1; display:flex; overflow:hidden;}
 .view{flex:1; display:none; overflow:hidden;}
 .view.active{display:flex;}
 #view-work.active{display:grid; grid-template-columns:310px 1fr 350px;}
+/* grid 子元素預設 min-height:auto 會撐破容器導致無法捲動，必須歸零 */
+#view-work.active > *{min-height:0; min-width:0;}
 .pane{overflow-y:auto; background:var(--panel);}
 .pane-left{border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;}
 .pane-mid{background:var(--bg); display:flex; flex-direction:column; overflow:hidden;}
@@ -195,6 +202,20 @@ main{flex:1; display:flex; overflow:hidden;}
 .file-row .meta{margin-left:auto; font-size:11.5px; color:var(--muted); white-space:nowrap;}
 .lock{font-size:11.5px; color:var(--yellow); background:var(--yellow-bg); padding:2px 8px; border-radius:999px;}
 .pill-pending{font-size:11px; color:var(--yellow); background:var(--yellow-bg); padding:1px 8px; border-radius:999px;}
+
+.msg-sub-label{font-size:11px; color:var(--muted);}
+
+/* ── 設定分區 ── */
+.settings-tabs{display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:14px;}
+.settings-tab{
+  background:none; border:none; padding:9px 14px; font-size:13px; font-weight:600; color:var(--muted);
+  cursor:pointer; font-family:inherit; border-bottom:2.5px solid transparent;
+}
+.settings-tab:hover{color:var(--text);}
+.settings-tab.active{color:var(--accent); border-bottom-color:var(--accent);}
+.settings-sec{display:none;}
+.settings-sec.active{display:block; animation:fadeUp .2s ease;}
+.sec-desc{font-size:12.5px; color:var(--muted); margin-bottom:12px; line-height:1.6;}
 
 /* ── Modal / Toast ── */
 .modal-bg{position:fixed; inset:0; background:rgba(13,17,23,.55); display:none; place-items:center; z-index:50; padding:20px;}
