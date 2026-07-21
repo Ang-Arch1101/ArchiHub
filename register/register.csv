@@ -1,0 +1,4 @@
+drawing_no,title,project_id,building,floor,discipline,current_ver,cad_path,pdf_path,aliases
+A-201,管理大樓 2F 平面圖,928816,管理大樓,2F,A,v3.0-r08,sample/01_作業檔/A-201_管理大樓_2F平面圖.dwg,sample/02_出圖檔/A-201_v3.0-r08.pdf,91 2F|管理大樓二樓|2F平面|管理大樓2樓平面
+A-501,廁所大樣圖,928816,管理大樓,,A,v2.0-r04,sample/01_作業檔/A-501_廁所大樣圖.dwg,sample/02_出圖檔/A-501_v2.0-r04.pdf,廁所大樣|洗手間大樣|廁所詳圖
+E-301,機電設備配置圖,928816,管理大樓,,E,v4.0-r11,sample/01_作業檔/E-301_機電設備配置圖.dwg,sample/02_出圖檔/E-301_v4.0-r11.pdf,機電配置|機電設備圖|水電圖
