@@ -8,3 +8,6 @@ Thumbs.db
 # Runtime 資料與個人設定（不進版控；首次啟動自動從 sample/seed 與預設值建立）
 data/
 config.json
+
+# 模擬產生的專案資料夾（可由 sim/run_sim.py 重建）
+sim/project/
