@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArchiHub · 內網多人版 UI 模擬</title>
+<style>
+  :root{
+    --bg:#f6f8fa; --panel:#ffffff; --border:#d1d9e0; --border-soft:#e6eaef;
+    --text:#1f2328; --muted:#59636e; --accent:#0969da; --accent-soft:#ddf4ff;
+    --red:#d1242f; --red-bg:#ffebe9; --yellow:#9a6700; --yellow-bg:#fff8c5; --yellow-dot:#d4a72c;
+    --green:#1a7f37; --green-bg:#dafbe1; --purple:#8250df; --purple-bg:#f6effe; --purple-bd:#d8bef7;
+    --header:#0d1117; --header-text:#ffffff; --header-sub:#c9d1d9; --header-line:#30363d; --header-pill:#21262d;
+    --shadow:0 1px 3px rgba(31,35,40,.09), 0 10px 30px rgba(31,35,40,.08);
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono","Courier New",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#010409; --panel:#0d1117; --border:#30363d; --border-soft:#21262d;
+      --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --accent-soft:#12283f;
+      --red:#f85149; --red-bg:#3a1416; --yellow:#e3b341; --yellow-bg:#342a0d; --yellow-dot:#d4a72c;
+      --green:#3fb950; --green-bg:#122117; --purple:#bc8cff; --purple-bg:#1f1633; --purple-bd:#3d2d6b;
+      --header:#010409; --header-text:#e6edf3; --header-sub:#8b949e; --header-line:#21262d; --header-pill:#161b22;
+      --shadow:0 1px 3px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f6f8fa; --panel:#ffffff; --border:#d1d9e0; --border-soft:#e6eaef;
+    --text:#1f2328; --muted:#59636e; --accent:#0969da; --accent-soft:#ddf4ff;
+    --red:#d1242f; --red-bg:#ffebe9; --yellow:#9a6700; --yellow-bg:#fff8c5; --yellow-dot:#d4a72c;
+    --green:#1a7f37; --green-bg:#dafbe1; --purple:#8250df; --purple-bg:#f6effe; --purple-bd:#d8bef7;
+    --header:#0d1117; --header-text:#ffffff; --header-sub:#c9d1d9; --header-line:#30363d; --header-pill:#21262d;
+    --shadow:0 1px 3px rgba(31,35,40,.09), 0 10px 30px rgba(31,35,40,.08);
+  }
+  :root[data-theme="dark"]{
+    --bg:#010409; --panel:#0d1117; --border:#30363d; --border-soft:#21262d;
+    --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --accent-soft:#12283f;
+    --red:#f85149; --red-bg:#3a1416; --yellow:#e3b341; --yellow-bg:#342a0d; --yellow-dot:#d4a72c;
+    --green:#3fb950; --green-bg:#122117; --purple:#bc8cff; --purple-bg:#1f1633; --purple-bd:#3d2d6b;
+    --header:#010409; --header-text:#e6edf3; --header-sub:#8b949e; --header-line:#21262d; --header-pill:#161b22;
+    --shadow:0 1px 3px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.4);
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1240px; margin:0 auto; padding:32px 20px 72px;}
+
+  /* ── page intro ── */
+  .intro{margin-bottom:22px;}
+  .eyebrow{font-size:11.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-bottom:8px;}
+  h1.title{font-size:clamp(22px,3.2vw,30px); line-height:1.2; margin:0 0 8px; text-wrap:balance; letter-spacing:-.01em;}
+  .lede{color:var(--muted); font-size:14.5px; max-width:66ch;}
+  .lede b{color:var(--text);}
+  .mockup-note{display:inline-flex; align-items:center; gap:7px; margin-top:12px; font-size:12px; color:var(--muted); background:var(--panel); border:1px dashed var(--border); border-radius:999px; padding:5px 13px;}
+
+  /* ── browser frame ── */
+  .frame{border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); background:var(--panel); margin-top:20px;}
+  .frame-bar{display:flex; align-items:center; gap:7px; padding:9px 14px; background:var(--bg); border-bottom:1px solid var(--border);}
+  .dot{width:11px; height:11px; border-radius:50%;}
+  .dot.r{background:#ff5f57;} .dot.y{background:#febc2e;} .dot.g{background:#28c840;}
+  .frame-url{margin-left:12px; font-family:var(--mono); font-size:12px; color:var(--muted); background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:3px 12px; flex:1; max-width:340px;}
+  .frame-scroll{overflow-x:auto;}
+
+  /* ── app top bar ── */
+  .app{min-width:940px;}
+  header.top{display:flex; align-items:center; gap:14px; padding:0 14px; height:54px; background:var(--header); color:var(--header-text);}
+  .logo{display:flex; align-items:center; gap:8px; font-weight:700; font-size:15.5px;}
+  .logo .mk{width:26px; height:26px; border-radius:7px; background:linear-gradient(135deg,#2f81f7,#8250df); display:grid; place-items:center; font-size:14px;}
+  .proj{font-size:12px; background:var(--header-pill); border:1px solid var(--header-line); color:var(--header-sub); padding:4px 11px; border-radius:999px; font-family:var(--mono);}
+  .top .sp{flex:1;}
+  .navt{display:flex; gap:3px;}
+  .navt button{background:none; border:none; color:var(--header-sub); font:inherit; font-size:13px; padding:6px 12px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:6px;}
+  .navt button.on{background:var(--header-line); color:#fff; font-weight:600;}
+  .navt .b{background:var(--red); color:#fff; font-size:10px; font-weight:700; min-width:16px; height:16px; border-radius:999px; display:grid; place-items:center; padding:0 4px;}
+  .gh{font-size:12px; color:var(--header-sub); background:none; border:1px solid var(--header-line); padding:5px 11px; border-radius:8px; cursor:pointer; font:inherit;}
+
+  /* identity switcher — opt #1 */
+  .idsw{position:relative;}
+  .idsw-btn{display:flex; align-items:center; gap:7px; font:inherit; font-size:12.5px; cursor:pointer;
+    background:var(--header-pill); border:1px solid var(--header-line); color:var(--header-text); padding:5px 11px; border-radius:999px;}
+  .idsw-btn .who{font-weight:700;}
+  .idsw-btn .cv{width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:11px; font-weight:700; color:#fff;}
+  .idsw-menu{position:absolute; top:calc(100% + 7px); right:0; z-index:40; min-width:210px; background:var(--panel); color:var(--text);
+    border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); padding:6px; display:none;}
+  .idsw-menu.open{display:block;}
+  .idsw-menu .lbl{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:6px 9px 3px;}
+  .idsw-opt{display:flex; align-items:center; gap:9px; width:100%; text-align:left; font:inherit; font-size:13px; cursor:pointer;
+    background:none; border:none; color:var(--text); padding:8px 9px; border-radius:8px;}
+  .idsw-opt:hover{background:var(--bg);}
+  .idsw-opt.on{background:var(--accent-soft);}
+  .idsw-opt .cv{width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0;}
+  .idsw-opt .role{font-size:11px; color:var(--muted);}
+
+  /* ── work grid ── */
+  .work{display:grid; grid-template-columns:296px 1fr 340px; height:560px;}
+  .work > *{min-width:0; min-height:0;}
+  .pane{background:var(--panel); overflow-y:auto;}
+  .pl{border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;}
+  .pm{background:var(--bg); display:flex; flex-direction:column; overflow:hidden;}
+  .pr{border-left:1px solid var(--border);}
+
+  .sidet{display:flex; border-bottom:1px solid var(--border);}
+  .sidet button{flex:1; background:none; border:none; border-bottom:2.5px solid transparent; padding:11px 4px 9px; font:inherit; font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px;}
+  .sidet button.on{color:var(--accent); border-bottom-color:var(--accent);}
+  .sidet .cnt{font-size:10px; font-weight:700; background:var(--bg); border:1px solid var(--border); border-radius:999px; min-width:16px; height:16px; display:grid; place-items:center; padding:0 4px; position:relative;}
+  .sidet button.on .cnt{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .sidet .cnt.hot{background:var(--red); color:#fff; border-color:var(--red);}
+  /* new-task pulse — opt #2 */
+  .cnt.newpulse::after{content:""; position:absolute; inset:-3px; border-radius:999px; border:2px solid var(--red); animation:ring 1.4s ease-out infinite;}
+  @keyframes ring{0%{transform:scale(1); opacity:.9;} 100%{transform:scale(1.9); opacity:0;}}
+  .tabdesc{font-size:11px; color:var(--muted); padding:8px 14px 6px;}
+  .reqlist{overflow-y:auto; flex:1; padding-bottom:12px;}
+  .empty{color:var(--muted); text-align:center; font-size:12.5px; padding:34px 18px;}
+
+  .card{margin:0 10px 8px; padding:10px 12px; border:1px solid var(--border-soft); border-radius:10px; cursor:pointer; background:var(--panel); transition:border-color .12s, background .12s; position:relative;}
+  .card:hover{border-color:var(--accent);}
+  .card.sel{border-color:var(--accent); background:var(--accent-soft);}
+  .card .ctop{display:flex; align-items:center; gap:7px; margin-bottom:3px;}
+  .light{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+  .light.red{background:var(--red);} .light.yellow{background:var(--yellow-dot);} .light.green{background:var(--green);}
+  .rid{font-family:var(--mono); font-size:11px; color:var(--muted);}
+  .rchip{font-size:10px; padding:1px 7px; border-radius:999px; font-weight:700; margin-left:auto;}
+  .rchip.d{background:var(--purple-bg); color:var(--purple);}
+  .rchip.r{background:var(--green-bg); color:var(--green);}
+  .ctit{font-size:12.8px; font-weight:600; line-height:1.4;}
+  .cmeta{font-size:11px; color:var(--muted); margin-top:4px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .tag{font-size:10.5px; padding:1px 8px; border-radius:999px; font-family:var(--mono); background:var(--accent-soft); color:var(--accent);}
+  .newtag{font-size:10px; font-weight:700; color:var(--red); background:var(--red-bg); padding:1px 7px; border-radius:999px;}
+  .lockmini{font-size:10px; color:var(--purple);}
+
+  /* middle viewer */
+  .vbar{display:flex; align-items:center; gap:8px; padding:9px 14px; background:var(--panel); border-bottom:1px solid var(--border); flex-wrap:wrap;}
+  .dtab{font-size:12px; font-family:var(--mono); padding:4px 11px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer;}
+  .dtab.on{background:var(--header); color:#fff; border-color:var(--header);}
+  .verpill{font-size:11.5px; font-family:var(--mono); color:var(--muted); margin-left:auto; background:var(--bg); border:1px solid var(--border); padding:3px 10px; border-radius:999px;}
+  /* lock banner — opt #3 */
+  .lockbar{display:flex; align-items:center; gap:10px; padding:8px 14px; background:var(--purple-bg); border-bottom:1px solid var(--purple-bd); color:var(--purple); font-size:12.5px; font-weight:600;}
+  .lockbar .ask{margin-left:auto; font-size:11.5px; font-weight:700; color:var(--purple); background:transparent; border:1px solid var(--purple-bd); border-radius:7px; padding:4px 10px; cursor:pointer; font-family:inherit;}
+  .hintbar{font-size:11.5px; color:var(--muted); background:var(--panel); border-bottom:1px solid var(--border); padding:6px 14px;}
+  .vwrap{flex:1; overflow:auto; display:grid; place-items:center; padding:18px;}
+  .sheet{background:#fff; box-shadow:var(--shadow); border:1px solid var(--border); width:min(94%,560px);}
+  .sheet svg{width:100%; height:auto; display:block;}
+  .hist{flex-shrink:0; background:var(--panel); border-top:1px solid var(--border); max-height:150px; overflow-y:auto; padding:10px 14px 12px;}
+  .histt{font-size:11.5px; font-weight:700; color:var(--muted); letter-spacing:.04em; margin-bottom:7px;}
+  .hitem{display:flex; align-items:baseline; gap:9px; padding:5px 0 5px 13px; font-size:12px; border-left:2px solid var(--border); margin-left:4px; position:relative;}
+  .hitem::before{content:""; position:absolute; left:-6px; top:9px; width:8px; height:8px; border-radius:50%; background:var(--panel); border:2px solid var(--muted);}
+  .hitem:first-child::before{border-color:var(--green); background:var(--green);}
+  .hver{font-family:var(--mono); font-weight:700; white-space:nowrap;}
+  .hitem:first-child .hver{color:var(--green);}
+  .hwho{color:var(--muted); font-size:11px; white-space:nowrap; margin-left:auto;}
+
+  /* detail */
+  .phead{font-size:12px; font-weight:700; color:var(--muted); padding:11px 16px; border-bottom:1px solid var(--border); letter-spacing:.04em;}
+  .detail{padding:16px;}
+  .detail-empty{color:var(--muted); text-align:center; font-size:12.5px; padding:60px 24px; line-height:1.7;}
+  .sbanner{display:flex; align-items:center; gap:9px; padding:9px 13px; border-radius:10px; font-weight:700; font-size:13px; margin-bottom:13px;}
+  .sbanner.red{background:var(--red-bg); color:var(--red);} .sbanner.yellow{background:var(--yellow-bg); color:var(--yellow);} .sbanner.green{background:var(--green-bg); color:var(--green);}
+  .detail h2{font-size:16px; margin:6px 0 12px; line-height:1.35;}
+  .srcbox{background:var(--bg); border:1px solid var(--border-soft); border-radius:10px; padding:9px 12px; font-size:12.5px; margin-bottom:12px;}
+  .srch{display:flex; gap:6px; align-items:center; font-weight:600; font-size:12px; margin-bottom:5px;}
+  .srcbox blockquote{margin:0; color:var(--muted); border-left:3px solid var(--border); padding-left:10px; font-size:12px;}
+  .kv{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:12.5px; margin-bottom:6px;}
+  .kv dt{color:var(--muted);} .kv dd{margin:0;}
+  .kv .mono{font-family:var(--mono);}
+  .btn{display:block; width:100%; padding:9px; border-radius:10px; border:none; cursor:pointer; font-size:13.5px; font-weight:700; font-family:inherit; margin-top:8px; transition:filter .12s;}
+  .btn:hover{filter:brightness(1.07);}
+  .btn.primary{background:var(--green); color:#fff;}
+  .btn.accent{background:var(--accent); color:#fff;}
+  .btn.warn{background:#bf8700; color:#fff;}
+  .btn.danger{background:var(--red); color:#fff;}
+  .btn.ghost{background:var(--panel); border:1px solid var(--border); color:var(--text);}
+  .note{display:flex; gap:8px; align-items:flex-start; font-size:12px; border-radius:8px; padding:8px 11px; margin-top:9px;}
+  .note.wait{color:var(--yellow); background:var(--yellow-bg); border:1px solid var(--yellow-bg);}
+  .note.ok{color:var(--green); background:var(--green-bg);}
+  .note.copy{color:var(--muted); background:var(--bg); border:1px dashed var(--border); flex-direction:column; gap:6px;}
+  .note.copy .path{font-family:var(--mono); font-size:11px; color:var(--text); word-break:break-all;}
+  .note.copy button{align-self:flex-start; font:inherit; font-size:11.5px; font-weight:700; color:var(--accent); background:var(--accent-soft); border:none; border-radius:7px; padding:4px 10px; cursor:pointer;}
+  .tl{margin-top:15px; border-top:1px dashed var(--border); padding-top:11px;}
+  .tl .h{font-size:11.5px; font-weight:700; color:var(--muted); margin-bottom:5px;}
+  .tl .row{display:flex; gap:8px; font-size:11.5px; color:var(--muted); padding:2px 0;}
+  .tl .row b{color:var(--text); font-weight:600; white-space:nowrap;}
+  .actor-hint{font-size:11px; color:var(--muted); margin-top:6px; text-align:center;}
+  .actor-hint b{color:var(--purple);}
+
+  /* confirm dialog — opt #4 */
+  .dlg-bg{position:absolute; inset:0; background:rgba(1,4,9,.5); display:none; place-items:center; z-index:60; padding:20px;}
+  .dlg-bg.open{display:grid;}
+  .dlg{background:var(--panel); border:1px solid var(--border); border-radius:14px; width:100%; max-width:380px; padding:20px 22px; box-shadow:var(--shadow);}
+  .dlg h3{margin:0 0 4px; font-size:15.5px;}
+  .dlg .as{font-size:12.5px; color:var(--muted); margin-bottom:12px;}
+  .dlg .as b{color:var(--purple);}
+  .dlg .box{background:var(--bg); border:1px solid var(--border-soft); border-radius:9px; padding:10px 12px; font-size:12.5px; margin-bottom:14px;}
+  .dlg .box .mono{font-family:var(--mono); color:var(--green); font-weight:700;}
+  .dlg-row{display:flex; gap:8px;}
+  .dlg-row .btn{margin-top:0;}
+
+  /* toast — opt #2 */
+  .toasts{position:absolute; right:16px; bottom:16px; z-index:70; display:flex; flex-direction:column; gap:8px; align-items:flex-end;}
+  .toast{background:var(--header); color:#fff; font-size:12.5px; font-weight:600; padding:10px 14px; border-radius:10px; box-shadow:var(--shadow); max-width:300px; animation:tin .3s ease;}
+  .toast.rev{background:var(--purple);}
+  @keyframes tin{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+
+  /* ── secondary row: mobile + tour ── */
+  .grid2{display:grid; grid-template-columns:300px 1fr; gap:24px; margin-top:34px; align-items:start;}
+  @media (max-width:760px){ .grid2{grid-template-columns:1fr;} }
+  .sec-h{font-size:15px; margin:0 0 4px;}
+  .sec-sub{font-size:12.5px; color:var(--muted); margin-bottom:14px;}
+
+  /* phone frame — opt #6 */
+  .phone{width:280px; margin:0 auto; border:9px solid #0d1117; border-radius:34px; overflow:hidden; box-shadow:var(--shadow); background:var(--panel);}
+  .phone-top{height:26px; background:#0d1117; position:relative;}
+  .phone-top::after{content:""; position:absolute; left:50%; top:8px; transform:translateX(-50%); width:70px; height:6px; border-radius:99px; background:#30363d;}
+  .m-bar{background:var(--header); color:#fff; padding:10px 14px; display:flex; align-items:center; gap:8px;}
+  .m-bar .mk{width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg,#2f81f7,#8250df); display:grid; place-items:center; font-size:12px;}
+  .m-bar .mid{margin-left:auto; font-size:11px; display:flex; align-items:center; gap:5px; background:var(--header-pill); border:1px solid var(--header-line); padding:3px 9px; border-radius:999px;}
+  .m-body{padding:14px;}
+  .m-tag{font-size:10.5px; font-weight:700; color:var(--yellow); background:var(--yellow-bg); padding:3px 9px; border-radius:999px; display:inline-block; margin-bottom:9px;}
+  .m-title{font-size:14px; font-weight:700; line-height:1.4; margin-bottom:4px;}
+  .m-rid{font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:11px;}
+  .m-thumb{border:1px solid var(--border); border-radius:9px; overflow:hidden; margin-bottom:12px; background:#fff;}
+  .m-thumb svg{width:100%; height:auto; display:block;}
+  .m-btn{display:block; width:100%; padding:12px; border-radius:11px; border:none; font:inherit; font-size:14px; font-weight:700; cursor:pointer; margin-top:9px;}
+  .m-btn.ok{background:var(--green); color:#fff;} .m-btn.no{background:var(--panel); color:var(--red); border:1.5px solid var(--red);}
+
+  /* tour legend */
+  .tour{display:flex; flex-direction:column; gap:9px;}
+  .titem{display:grid; grid-template-columns:30px 1fr auto; gap:12px; align-items:center; background:var(--panel); border:1px solid var(--border); border-radius:11px; padding:11px 14px; text-align:left; cursor:pointer; font:inherit; color:var(--text); transition:border-color .12s, transform .08s;}
+  .titem:hover{border-color:var(--accent); transform:translateX(2px);}
+  .titem .num{width:30px; height:30px; border-radius:8px; background:var(--accent-soft); color:var(--accent); font-weight:800; display:grid; place-items:center; font-size:14px; font-variant-numeric:tabular-nums;}
+  .titem .tx b{display:block; font-size:13px;}
+  .titem .tx span{font-size:11.5px; color:var(--muted);}
+  .titem .go{font-size:11px; font-weight:700; color:var(--accent); white-space:nowrap;}
+  .prio{font-size:9.5px; font-weight:800; letter-spacing:.06em; padding:1px 6px; border-radius:5px; margin-left:6px; vertical-align:middle;}
+  .prio.hi{background:var(--red-bg); color:var(--red);}
+  .prio.mid{background:var(--yellow-bg); color:var(--yellow);}
+
+  footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--border); font-size:12px; color:var(--muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+
+  @media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
+  button:focus-visible, .card:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="intro">
+    <div class="eyebrow">ArchiHub · 內網多人版　設計模擬</div>
+    <h1 class="title">同一份中央檔，多人各自接派工、確認、退回</h1>
+    <p class="lede">這是 <b>S1「內網互通 + 多身分」</b>階段的介面模擬——沿用現有 ArchiHub 視覺，疊上六個多人化才需要的 UI 優化。<b>可直接操作</b>：切換右上角身分、點左欄任務、按「確認進版」看二次確認。下方每個優化點都能點擊跳到現場示範。</p>
+    <div class="mockup-note">🧪 靜態模擬・示意資料，非真實專案</div>
+  </div>
+
+  <div class="frame">
+    <div class="frame-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="frame-url">192.168.1.50:8734　🔒 內網</span>
+    </div>
+    <div class="frame-scroll">
+      <div class="app" id="app">
+        <header class="top">
+          <div class="logo"><div class="mk">📐</div>ArchiHub</div>
+          <div class="proj">928816 · 竹北廠區新建工程</div>
+          <div class="sp"></div>
+
+          <div class="idsw" id="idsw">
+            <button class="idsw-btn" id="idswBtn" aria-haspopup="true">
+              <span class="cv" id="idswCv"></span>
+              <span>目前身分：<span class="who" id="idswWho"></span></span>
+              <span aria-hidden="true">▾</span>
+            </button>
+            <div class="idsw-menu" id="idswMenu" role="menu"></div>
+          </div>
+
+          <nav class="navt">
+            <button>📥 收件匣 <span class="b">2</span></button>
+            <button class="on">🗂 工作台</button>
+            <button>📁 檔案庫</button>
+          </nav>
+          <button class="gh">⚙ 設定</button>
+        </header>
+
+        <div class="work">
+          <div class="pane pl">
+            <div class="sidet">
+              <button class="on" data-tab="todo">🔧 待辦作業 <span class="cnt hot" id="cntTodo">0</span></button>
+              <button data-tab="review">👁 待我確認 <span class="cnt" id="cntReview">0</span></button>
+              <button data-tab="all">📋 全部</button>
+            </div>
+            <div class="tabdesc" id="tabDesc"></div>
+            <div class="reqlist" id="reqList"></div>
+          </div>
+
+          <div class="pane pm">
+            <div class="vbar" id="vbar"></div>
+            <div id="lockSlot"></div>
+            <div class="hintbar" id="hintbar">🖐 拖曳雲朵標記可修正位置——每次修正都會記錄為訓練資料</div>
+            <div class="vwrap"><div class="sheet" id="sheet"></div></div>
+            <div class="hist">
+              <div class="histt">🕘 版本歷史（進版流水號）</div>
+              <div id="histList"></div>
+            </div>
+          </div>
+
+          <div class="pane pr">
+            <div class="phead">Request 詳情</div>
+            <div id="detail"></div>
+          </div>
+        </div>
+
+        <div class="dlg-bg" id="dlgBg">
+          <div class="dlg" role="dialog" aria-modal="true">
+            <h3>確認正式進版？</h3>
+            <div class="as">你將以 <b id="dlgActor"></b> 身分執行此動作</div>
+            <div class="box" id="dlgBox"></div>
+            <div class="dlg-row">
+              <button class="btn ghost" onclick="closeDlg()">取消</button>
+              <button class="btn primary" onclick="doConfirm()">✓ 確認進版</button>
+            </div>
+          </div>
+        </div>
+        <div class="toasts" id="toasts"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h2 class="sec-h">📱 審核者手機檢視</h2>
+      <p class="sec-sub">監造、業主常在工地。讓 requester 在手機上「看 pending → 確認 / 退回」，採用率大幅拉高。</p>
+      <div class="phone">
+        <div class="phone-top"></div>
+        <div class="m-bar">
+          <div class="mk">📐</div>
+          <span style="font-weight:700; font-size:13px;">ArchiHub</span>
+          <span class="mid"><span class="cv" style="width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:700;color:#fff;background:#1f6feb;">陳</span>陳監造</span>
+        </div>
+        <div class="m-body">
+          <span class="m-tag">🟡 待你確認</span>
+          <div class="m-title">2F C4-7 柱旁落水頭東移 10cm</div>
+          <div class="m-rid">REQ-042 · A-201 · 小柯 已提交</div>
+          <div class="m-thumb" id="mThumb"></div>
+          <button class="m-btn ok" onclick="toast('🟢 已進版並通知全員（示意）')">✓ 確認符合要求・進版</button>
+          <button class="m-btn no" onclick="toast('↩ 已退回小柯重修（示意）')">↩ 退回重修</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="sec-h">🎯 六個 UI 優化點</h2>
+      <p class="sec-sub">按投報率排。點任一項，介面會跳到該功能的現場示範。</p>
+      <div class="tour" id="tour"></div>
+    </div>
+  </div>
+
+  <footer>
+    <span>ArchiHub 內網多人版 · UI 模擬 v0.1</span>
+    <span>對應規劃：docs/01.meetings/2026-07-22-單機到內網多人升級路徑</span>
+  </footer>
+</div>
+
+<script>
+/* ── 示意資料 ── */
+const USERS = {
+  '阿勳':   {cv:'阿', color:'#8250df', role:'設計 / PM'},
+  '小柯':   {cv:'柯', color:'#1a7f37', role:'設計'},
+  '陳監造': {cv:'陳', color:'#1f6feb', role:'監造 / 審核'},
+};
+const REQS = [
+  {id:'REQ-045', status:'red', drawing:'A-101', title:'1F 大廳地坪由拋光石英磚改石材', requester:'阿勳', designer:'小柯', due:'07/23', icon:'📧', from:'林主任〈lin@demo〉', quote:'大廳地坪材質改為石材，下週三前提修正圖。', isNew:true},
+  {id:'REQ-042', status:'red', drawing:'A-201', title:'2F C4-7 柱旁落水頭東移 10cm', requester:'陳監造', designer:'阿勳', due:'07/22', icon:'📧', from:'陳監造〈chen@demo〉', quote:'配合排水坡度，C4-7 柱旁落水頭往東移 10 公分。'},
+  {id:'REQ-041', status:'red', drawing:'A-501', title:'廁所隔間 C11 側往東移 15cm', requester:'阿勳', designer:'小柯', due:'07/20', icon:'📝', from:'我的筆記（王副理口頭）', quote:'2F 廁所 C11 隔間往東移 15 公分。', lockedBy:'小柯', lockedFor:'2 小時 08 分'},
+  {id:'REQ-039', status:'yellow', drawing:'A-301', title:'3F 樓梯間消防栓箱北移', requester:'阿勳', designer:'小柯', due:'07/21', icon:'📝', from:'工地筆記', quote:'消防栓箱跟門片開向打架，箱體往北挪。', pending:'A-301_pending_REQ-039.pdf'},
+  {id:'REQ-040', status:'green', drawing:'E-301', title:'洗床機數量核對（圖說/數量表/價目表）', requester:'宏昇機電', designer:'阿勳', due:'07/15', icon:'📧', from:'宏昇機電〈vendor@demo〉', quote:'圖說 3 台、數量表 2 台、價目表 4 台，三者不符。'},
+];
+const DRAWINGS = ['A-101','A-201','A-301','A-501','E-301'];
+const DNAME = {'A-101':'一樓平面圖','A-201':'二樓平面圖','A-301':'三樓平面圖','A-501':'廁所大樣圖','E-301':'機電設備配置圖'};
+const DVER  = {'A-101':'v2.0-r03','A-201':'v3.0-r08','A-301':'v1.2-r04','A-501':'v2.0-r04','E-301':'v4.0-r11'};
+const HIST = {
+  'A-201':[['v3.0-r08','07/10','2F 東側開口尺寸修正','阿勳','林主任'],['v2.0-r05','06/28','柱位配合結構調整','阿勳','林主任'],['v1.0-r01','06/02','初版發行','阿勳','林主任']],
+  'A-101':[['v2.0-r03','07/08','大廳動線調整','小柯','林主任'],['v1.0-r01','06/02','初版發行','小柯','林主任']],
+  'A-301':[['v1.2-r04','07/05','樓梯間扶手修正','小柯','林主任'],['v1.0-r01','06/02','初版發行','小柯','林主任']],
+  'A-501':[['v2.0-r04','07/05','器具規格更新','小柯','林主任'],['v1.0-r01','06/02','初版發行','小柯','林主任']],
+  'E-301':[['v4.0-r11','07/15','洗床機數量修正','阿勳','陳監造'],['v3.0-r09','07/01','配電盤移位','阿勳','林主任']],
+};
+const statusName = {red:'🔴 待處理', yellow:'🟡 待確認', green:'🟢 已進版'};
+
+let curUser = '阿勳';
+let curTab = 'todo';
+let selId = 'REQ-042';
+let curDwg = 'A-201';
+const tabDesc = {todo:'我是 Designer，等我動手修改的 Request', review:'我發出的 Request，對方已提交，等我確認進版', all:'本專案全部 Request（含已結案）'};
+
+/* ── plan SVG ── */
+function planSVG(code, opts){
+  opts = opts || {};
+  const r = REQS.find(x=>x.drawing===code && x.status!=='green') || REQS.find(x=>x.drawing===code);
+  const stroke = {red:'#d1242f', yellow:'#d4a72c', green:'#1a7f37'};
+  const col = r ? stroke[r.status] : '#8b949e';
+  const letter = r ? r.id.slice(-1) : '';
+  const mx = opts.small?150:180, my = opts.small?95:120;
+  return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="400" height="300" fill="#ffffff"/>
+    <rect x="16" y="16" width="368" height="268" fill="none" stroke="#1f2328" stroke-width="1.4"/>
+    <rect x="40" y="44" width="150" height="110" fill="none" stroke="#c8ccd2" stroke-width="1.6"/>
+    <rect x="210" y="44" width="150" height="110" fill="none" stroke="#c8ccd2" stroke-width="1.6"/>
+    <rect x="40" y="176" width="320" height="82" fill="none" stroke="#c8ccd2" stroke-width="1.6"/>
+    <line x1="115" y1="44" x2="115" y2="154" stroke="#e6eaef" stroke-width="1"/>
+    <line x1="210" y1="99" x2="360" y2="99" stroke="#e6eaef" stroke-width="1"/>
+    <text x="52" y="38" font-size="10" fill="#8b949e" font-family="monospace">${code} ${DNAME[code]||''}</text>
+    ${r ? `<g transform="translate(${mx},${my})">
+      <circle r="26" fill="${col}" fill-opacity="0.12" stroke="${col}" stroke-width="2.2" stroke-dasharray="7 4"/>
+      <circle cx="20" cy="-20" r="10" fill="${col}"/>
+      <text x="20" y="-16" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="monospace">${letter}</text>
+    </g>`:''}
+  </svg>`;
+}
+
+/* ── render ── */
+function isMine(r){ return {designer: r.designer===curUser, requester: r.requester===curUser}; }
+function filtered(tab){
+  if(tab==='todo')   return REQS.filter(r=>r.designer===curUser && r.status==='red');
+  if(tab==='review') return REQS.filter(r=>r.requester===curUser && r.status==='yellow');
+  return REQS.slice();
+}
+function renderIdsw(){
+  const u = USERS[curUser];
+  document.getElementById('idswWho').textContent = curUser;
+  const cv = document.getElementById('idswCv'); cv.textContent = u.cv; cv.style.background = u.color;
+  document.getElementById('idswMenu').innerHTML = '<div class="lbl">切換身分（各自電腦記住自己）</div>' +
+    Object.entries(USERS).map(([name,info])=>`
+      <button class="idsw-opt ${name===curUser?'on':''}" onclick="setUser('${name}')" role="menuitem">
+        <span class="cv" style="background:${info.color}">${info.cv}</span>
+        <span><b>${name}</b><span class="role"> · ${info.role}</span></span>
+      </button>`).join('');
+}
+function renderList(){
+  document.getElementById('cntTodo').textContent = filtered('todo').length;
+  document.getElementById('cntReview').textContent = filtered('review').length;
+  const hasNew = filtered('todo').some(r=>r.isNew);
+  document.getElementById('cntTodo').classList.toggle('newpulse', hasNew && curTab!=='todo' ? true : hasNew);
+  document.getElementById('tabDesc').textContent = tabDesc[curTab];
+  const list = filtered(curTab);
+  const el = document.getElementById('reqList');
+  if(!list.length){ el.innerHTML = '<div class="empty">此頁籤目前沒有項目 🎉</div>'; return; }
+  el.innerHTML = list.map(r=>{
+    const mine = isMine(r);
+    const chip = mine.designer ? '<span class="rchip d">我修改</span>' : mine.requester ? '<span class="rchip r">我確認</span>' : '';
+    return `<div class="card ${selId===r.id?'sel':''}" tabindex="0" onclick="selectReq('${r.id}')" onkeydown="if(event.key==='Enter')selectReq('${r.id}')">
+      <div class="ctop"><span class="light ${r.status}"></span><span class="rid">${r.id}</span>${chip}</div>
+      <div class="ctit">${r.title}</div>
+      <div class="cmeta">
+        <span class="tag">${r.drawing}</span>
+        <span>${r.icon} ${r.from.split('〈')[0]}</span>
+        ${r.isNew?'<span class="newtag">● 新指派</span>':''}
+        ${r.lockedBy?`<span class="lockmini">🔒 ${r.lockedBy}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderViewer(){
+  document.getElementById('vbar').innerHTML =
+    DRAWINGS.map(c=>`<button class="dtab ${c===curDwg?'on':''}" onclick="setDwg('${c}')">${c}</button>`).join('')
+    + `<span class="verpill">📄 ${DNAME[curDwg]} · ${DVER[curDwg]}</span>`;
+  // lock banner — opt #3
+  const locker = REQS.find(r=>r.drawing===curDwg && r.lockedBy);
+  const lockSlot = document.getElementById('lockSlot');
+  if(locker && locker.lockedBy!==curUser){
+    lockSlot.innerHTML = `<div class="lockbar" id="lockbar">🔒 ${locker.lockedBy} 編輯中・已 ${locker.lockedFor}
+      <button class="ask" onclick="toast('✉ 已向 ${locker.lockedBy} 詢問進度（示意）')">向 ${locker.lockedBy} 詢問進度</button></div>`;
+  } else if(locker && locker.lockedBy===curUser){
+    lockSlot.innerHTML = `<div class="lockbar" style="background:var(--accent-soft);border-color:var(--accent);color:var(--accent)" id="lockbar">🔓 由你鎖定編輯中・已 ${locker.lockedFor}（其他人只能讀）</div>`;
+  } else { lockSlot.innerHTML = ''; }
+  document.getElementById('sheet').innerHTML = planSVG(curDwg);
+  document.getElementById('histList').innerHTML = (HIST[curDwg]||[]).map(h=>`
+    <div class="hitem"><span class="hver">${h[0]}</span><span>${h[2]}</span><span class="hwho">${h[1]} · 設計 ${h[3]} · 核可 ${h[4]}</span></div>`).join('');
+}
+function renderDetail(){
+  const r = REQS.find(x=>x.id===selId);
+  const el = document.getElementById('detail');
+  if(!r){ el.innerHTML = '<div class="detail-empty">← 點選左側任一 Request<br>查看詳情與圖面對應位置</div>'; return; }
+  const mine = isMine(r);
+  let actions = '';
+  if(r.status==='red'){
+    if(mine.designer){
+      if(r.lockedBy && r.lockedBy!==curUser){
+        actions = `<div class="note wait">🔒 此圖目前由 ${r.lockedBy} 鎖定編輯中，暫時無法取出</div>`;
+      } else if(r.lockedBy===curUser){
+        actions = `<div class="note ok">💾 本地副本編輯中（你已取出）</div>
+          <button class="btn warn">⬆ 完成並提交（自動出 pending PDF）</button>`;
+      } else {
+        // opt #5 — CAD 開檔降級
+        actions = `<button class="btn accent">▶ 接受任務・取出本地副本</button>
+          <div class="note copy">📋 取出後，CAD 檔在你自己的電腦開啟；若走中央 server 模型則複製路徑手動開：
+            <span class="path">\\\\NAS\\案件\\928816\\01_作業檔\\${r.drawing}.dwg</span>
+            <button onclick="toast('📋 已複製路徑（示意）')">複製檔案路徑</button>
+          </div>`;
+      }
+    } else {
+      actions = `<div class="note wait">⏳ 等待 ${r.designer} 接受並修改${r.lockedBy?`（🔒 ${r.lockedBy} 編輯中・已 ${r.lockedFor}）`:''}</div>`;
+    }
+  } else if(r.status==='yellow'){
+    if(mine.requester){
+      // opt #4 — 二次確認
+      actions = `<button class="btn ghost">🧾 檢視提交的 PDF（${r.pending}）</button>
+        <button class="btn primary" onclick="openDlg('${r.id}')">✓ 確認符合要求 → 正式進版</button>
+        <button class="btn danger" onclick="toast('↩ 進入退回模式：請在圖上點問題位置（示意）')">↩ 退回重修（標問題位置＋原因）</button>`;
+    } else {
+      actions = `<div class="note wait">⏳ Pending — 等待 ${r.requester} 檢查確認</div>`;
+    }
+  } else {
+    actions = `<div class="note ok">✅ 已正式進版並通知全員，本 Request 結案</div>`;
+  }
+  const actorHint = (r.status==='yellow' && mine.requester) || (r.status==='red' && mine.designer)
+    ? `<div class="actor-hint">此動作將以 <b>${curUser}</b> 身分記錄</div>` : '';
+  el.innerHTML = `
+    <div class="detail">
+      <div class="sbanner ${r.status}">${statusName[r.status]}</div>
+      <span class="rid">${r.id}</span>
+      <h2>${r.title}</h2>
+      <div class="srcbox">
+        <div class="srch">${r.icon} 來源：${r.from}</div>
+        <blockquote>「${r.quote}」</blockquote>
+      </div>
+      <dl class="kv">
+        <dt>對應圖面</dt><dd>${r.drawing} ${DNAME[r.drawing]}</dd>
+        <dt>Requester</dt><dd>${r.requester}${r.requester===curUser?'（我）':''}</dd>
+        <dt>Designer</dt><dd>${r.designer}${r.designer===curUser?'（我）':''}</dd>
+        <dt>回覆期限</dt><dd>${r.due}</dd>
+        <dt>現行版本</dt><dd class="mono">${DVER[r.drawing]}</dd>
+      </dl>
+      ${actions}
+      ${actorHint}
+      <div class="tl">
+        <div class="h">歷程</div>
+        <div class="row"><b>07/18 09:12</b><span>AI 從${r.icon==='📧'?'Email':'筆記'}萃取建立 Request</span></div>
+        ${r.status!=='red'?`<div class="row"><b>07/18 14:20</b><span>${r.designer} 接受任務，取出本地副本</span></div>`:''}
+        ${r.status==='yellow'?`<div class="row"><b>07/19 08:45</b><span>${r.designer} 完成提交 → 待 ${r.requester} 確認</span></div>`:''}
+        ${r.status==='green'?`<div class="row"><b>07/15 09:10</b><span>${r.requester} 確認 → 正式進版，已通知全員</span></div>`:''}
+      </div>
+    </div>`;
+}
+function renderAll(){ renderIdsw(); renderList(); renderViewer(); renderDetail(); }
+
+/* ── interactions ── */
+function setUser(name){
+  const changed = name!==curUser;
+  curUser = name;
+  document.getElementById('idswMenu').classList.remove('open');
+  // pick a sensible selection for this user
+  const mineTodo = filtered('todo'), mineRev = filtered('review');
+  if(mineTodo.length){ curTab='todo'; selId=mineTodo[0].id; }
+  else if(mineRev.length){ curTab='review'; selId=mineRev[0].id; }
+  else { curTab='all'; selId=REQS[1].id; }
+  syncTabButtons();
+  const r = REQS.find(x=>x.id===selId); if(r) curDwg = r.drawing;
+  renderAll();
+  if(changed){
+    const nt = filtered('todo').find(r=>r.isNew);
+    if(nt) toast(`🔔 ${nt.requester} 指派了新任務給你：${nt.id}`);
+  }
+}
+function selectReq(id){
+  selId = id;
+  const r = REQS.find(x=>x.id===id); if(r) curDwg = r.drawing;
+  renderAll();
+}
+function setDwg(c){ curDwg = c; renderViewer(); }
+function setTab(t){ curTab=t; syncTabButtons(); renderList(); }
+function syncTabButtons(){
+  document.querySelectorAll('.sidet button').forEach(b=>b.classList.toggle('on', b.dataset.tab===curTab));
+}
+document.querySelectorAll('.sidet button').forEach(b=> b.addEventListener('click', ()=>setTab(b.dataset.tab)) );
+
+document.getElementById('idswBtn').addEventListener('click', e=>{
+  e.stopPropagation();
+  document.getElementById('idswMenu').classList.toggle('open');
+});
+document.addEventListener('click', ()=> document.getElementById('idswMenu').classList.remove('open'));
+
+/* confirm dialog */
+let dlgId = null;
+function openDlg(id){
+  dlgId = id; const r = REQS.find(x=>x.id===id);
+  document.getElementById('dlgActor').textContent = curUser;
+  document.getElementById('dlgBox').innerHTML = `${r.id} · ${r.drawing} ${DNAME[r.drawing]}<br>→ 正式進版 <span class="mono">v?.?-r??</span>，並通知全員舊版作廢`;
+  document.getElementById('dlgBg').classList.add('open');
+}
+function closeDlg(){ document.getElementById('dlgBg').classList.remove('open'); }
+function doConfirm(){
+  const r = REQS.find(x=>x.id===dlgId);
+  closeDlg();
+  toast(`🟢 ${r.drawing} 已進版`, false);
+  setTimeout(()=>toast('📢 已通知專案全員：中央檔已更新，舊版作廢', true), 500);
+}
+document.getElementById('dlgBg').addEventListener('click', e=>{ if(e.target.id==='dlgBg') closeDlg(); });
+
+/* toast */
+function toast(msg, rev){
+  const t = document.createElement('div');
+  t.className = 'toast' + (rev?' rev':'');
+  t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(()=>{ t.style.transition='opacity .4s'; t.style.opacity=0; setTimeout(()=>t.remove(),400); }, 3400);
+}
+
+/* mobile thumb */
+document.getElementById('mThumb').innerHTML = planSVG('A-201',{small:true});
+
+/* ── tour ── */
+const TOUR = [
+  {n:1, prio:'hi',  t:'身分常駐可視・零摩擦切換', d:'頂部隨時看得到「目前身分」，防止用錯身分進版', act:()=>{ document.getElementById('idswMenu').classList.add('open'); document.getElementById('idsw').scrollIntoView({block:'center',behavior:'smooth'}); }},
+  {n:2, prio:'hi',  t:'新任務「有感」提示', d:'被派工時待辦數字跳動 + toast 通知，不只靜默輪詢', act:()=>{ setUser('小柯'); }},
+  {n:3, prio:'',    t:'鎖定顯示「誰 + 多久」', d:'檔案被誰取出、鎖多久，一目了然（lock 模型可視化）', act:()=>{ setUser('阿勳'); selectReq('REQ-041'); }},
+  {n:4, prio:'',    t:'不可逆動作二次確認', d:'進版/退回前顯示「以 XXX 身分執行」，防手滑、強化追責', act:()=>{ setUser('阿勳'); selectReq('REQ-039'); setTimeout(()=>openDlg('REQ-039'),250); }},
+  {n:5, prio:'',    t:'CAD 開檔優雅降級', d:'跨網路無法自動開檔時，改成複製路徑，不留會出錯的按鈕', act:()=>{ setUser('阿勳'); selectReq('REQ-042'); }},
+  {n:6, prio:'mid', t:'審核者手機檢視', d:'監造/業主在工地用手機確認或退回，大幅提升採用率', act:()=>{ document.querySelector('.phone').scrollIntoView({block:'center',behavior:'smooth'}); }},
+];
+document.getElementById('tour').innerHTML = TOUR.map((x,i)=>`
+  <button class="titem" onclick="TOUR_ACT(${i})">
+    <span class="num">${x.n}</span>
+    <span class="tx"><b>${x.t}${x.prio==='hi'?'<span class="prio hi">最優先</span>':x.prio==='mid'?'<span class="prio mid">高價值</span>':''}</b><span>${x.d}</span></span>
+    <span class="go">▶ 示範</span>
+  </button>`).join('');
+window.TOUR_ACT = i => { TOUR[i].act(); document.getElementById('app').scrollIntoView({block:'nearest',behavior:'smooth'}); };
+
+renderAll();
+</script>
+</body>
+</html>
