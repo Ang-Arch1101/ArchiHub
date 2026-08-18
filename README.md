@@ -1,5 +1,7 @@
 # ArchiHub 📐 — 工程圖面的 GitHub
 
+> 🔗 [查看 ArchiHub 專案介紹網站](overview/index.html)
+
 把 Git 的協作邏輯搬到工程圖面管理：**多來源修改要求 → 結構化 Request → 對應圖面 → 派工 → 版本進版與通知**。
 
 > 邊界：只做「溝通資訊 → 圖面」這一段，不碰改圖本身。詳見 [docs/01.meetings/2026-07-18-討論紀錄.md](docs/01.meetings/2026-07-18-討論紀錄.md)。
