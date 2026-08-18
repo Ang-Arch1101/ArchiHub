@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ArchiHub 將工程圖面的修改需求、版本與審核關係，整理成可探索的協作圖譜。">
+  <title>ArchiHub — 圖面協作的知識網</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="refine.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top"><span class="brand-mark">A</span>ArchiHub</a>
+    <nav><a href="#graph">協作圖譜</a><a href="#skills">能力節點</a><a href="#workflow">工作流程</a></nav>
+    <a class="nav-action" href="#start">進入工作台 <span>↗</span></a>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-intro">
+        <p class="eyebrow"><i></i>DRAWING COLLABORATION, CONNECTED</p>
+        <h1>讓圖面協作<br>形成一張<span>可閱讀的網。</span></h1>
+        <p class="lead">ArchiHub 收攏散落的修改交辦，將每個需求連到它的圖面、位置、負責人與版本。團隊不只知道「要改什麼」，更知道每件事如何彼此相連。</p>
+        <div class="hero-buttons"><a class="button solid" href="#graph">探索協作圖譜 <b>↓</b></a><a class="button quiet" href="#workflow">看看如何運作 <b>→</b></a></div>
+      </div>
+      <div class="hero-network" aria-label="ArchiHub 工程圖面協作關係圖">
+        <svg viewBox="0 0 670 480" role="img">
+          <title>圖面、Request、版本和參與角色之間的關聯網</title>
+          <g class="connections"><path d="M341 224L151 117M341 224L126 342M341 224L516 116M341 224L535 342M341 224L338 397M151 117L126 342M151 117L516 116M516 116L535 342M126 342L338 397M535 342L338 397"/><path d="M151 117L341 224M516 116L341 224" class="active-line"/></g>
+          <g class="node n-email" data-label="需求來源" data-text="Email、現場筆記與交辦事項，都從這裡進入團隊共同的收件匣。"><circle cx="151" cy="117" r="44"/><text x="151" y="113">✉</text><text x="151" y="137">需求來源</text></g>
+          <g class="node n-drawing" data-label="圖面 A-201" data-text="每一則 Request 對應圖號與位置，讓修改內容不再脫離工程圖面。"><circle cx="516" cy="116" r="50"/><text x="516" y="111">▧</text><text x="516" y="137">圖面 A-201</text></g>
+          <g class="node n-person" data-label="Designer" data-text="設計人員接收待辦、完成調整，並提交待確認的 pending PDF。"><circle cx="126" cy="342" r="39"/><text x="126" y="338">◉</text><text x="126" y="361">Designer</text></g>
+          <g class="node center" data-label="REQ-043" data-text="一個結構化的修改 Request，連接來源、圖面、責任、狀態與每一輪版本紀錄。"><circle cx="341" cy="224" r="86"/><circle cx="341" cy="224" r="66"/><text x="341" y="218">REQ</text><text x="341" y="242">043</text></g>
+          <g class="node n-review" data-label="Requester" data-text="提出者能在圖面與 pending PDF 上確認結果，必要時標記位置退回重修。"><circle cx="535" cy="342" r="42"/><text x="535" y="337">✓</text><text x="535" y="361">Requester</text></g>
+          <g class="node n-version" data-label="版本歷程" data-text="每一次確認進版都記錄為可追溯的版本節點，保留圖面演進脈絡。"><circle cx="338" cy="397" r="47"/><text x="338" y="393">v3.0</text><text x="338" y="415">版本歷程</text></g>
+        </svg>
+        <div class="graph-tip"><span id="tip-label">REQ-043</span><p id="tip-text">一個結構化的修改 Request，連接來源、圖面、責任、狀態與每一輪版本紀錄。</p></div>
+      </div>
+    </section>
+
+    <section class="manifesto"><p>工程專案最重要的資訊，從來不是孤立的檔案。它們是需求、圖面、決策與人的關係。</p><span>ARCIHUB / 01</span></section>
+
+    <section class="graph-section" id="graph">
+      <div class="section-head"><div><p class="eyebrow"><i></i>ONE REQUEST, MANY CONNECTIONS</p><h2>一個 Request，<br>看見整段協作脈絡。</h2></div><p>點擊任一節點，探索它在圖面流程中的角色。每條線都代表能被追蹤、交接與驗證的關係。</p></div>
+      <div class="process-map" aria-label="ArchiHub Request 處理流程">
+        <div class="process-track"></div>
+        <button class="process-step active" data-title="接收需求" data-copy="Email、現場筆記與口頭交辦進到同一個收件匣；系統保留原文，等待被整理成 Request。"><i>01</i><span>接收</span><small>集中需求來源</small></button>
+        <button class="process-step" data-title="執行修改" data-copy="Designer 接手 Request，從工作清單進入對應圖號與修改位置，完成設計調整並產出 pending PDF。"><i>02</i><span>執行</span><small>派工與處理</small></button>
+        <button class="process-step" data-title="檢查圖面" data-copy="Requester 開啟 pending PDF，直接對照原始需求與標記位置；有落差時可以回到圖面上提出重修。"><i>03</i><span>檢查</span><small>比對修改結果</small></button>
+        <button class="process-step" data-title="確認結果" data-copy="當內容正確，Requester 確認這次修改。責任、圖號與時間都會被寫入正式的審核紀錄。"><i>04</i><span>確認</span><small>核准交付內容</small></button>
+        <button class="process-step" data-title="正式進版" data-copy="確認後，pending PDF 轉為正式版本；ArchiHub 將版本號、處理人與修訂原因保存到歷程中。"><i>05</i><span>進版</span><small>留下版本記憶</small></button>
+        <div class="process-note"><span id="process-title">接收需求</span><p id="process-copy">Email、現場筆記與口頭交辦進到同一個收件匣；系統保留原文，等待被整理成 Request。</p></div>
+      </div>
+    </section>
+
+    <section class="skills" id="skills">
+      <div class="section-head"><div><p class="eyebrow"><i></i>THE COLLABORATION SKILL TREE</p><h2>從一個交辦，<br>長成團隊的能力樹。</h2></div><p>這不是軟體功能清單，而是 ArchiHub 將工程協作能力逐步串接起來的方式。</p></div>
+      <div class="skill-tree" aria-label="ArchiHub 技能樹">
+        <div class="trunk"><span>ArchiHub</span><small>圖面協作中樞</small></div>
+        <div class="branch intake"><span class="branch-tag">01 INPUT</span><h3>接住需求</h3><p>收件匣<br>訊息萃取<br>Request 建立</p></div>
+        <div class="branch mapping"><span class="branch-tag">02 MAP</span><h3>連到圖面</h3><p>PDF 檢視<br>修改定位<br>圖號關聯</p></div>
+        <div class="branch review"><span class="branch-tag">03 REVIEW</span><h3>讓結果被確認</h3><p>pending PDF<br>退回重修<br>角色分工</p></div>
+        <div class="branch memory"><span class="branch-tag">04 MEMORY</span><h3>留下組織記憶</h3><p>進版歷程<br>修訂原因<br>校正資料</p></div>
+        <svg class="tree-lines" viewBox="0 0 1100 520" preserveAspectRatio="none" aria-hidden="true"><path d="M550 460V390M550 390H178V330M550 390H420V240M550 390H700V240M550 390H930V330"/><path d="M550 460V390" class="tree-active"/></svg>
+      </div>
+    </section>
+
+    <section class="workflow" id="workflow"><p class="eyebrow"><i></i>WHAT HAPPENS INSIDE THE TOOL</p><h2>五個步驟，讓一則交辦<br>走到可靠的正式版本。</h2><div class="tool-explainer"><article><div class="tool-copy"><span>01 / 接收</span><h3>把零散交辦接進來</h3><p>工具掃描信件與筆記資料夾，把每一則尚未處理的內容放進收件匣。此時保留來源文字，避免需求一開始就遺失上下文。</p></div><div class="tool-window inbox-window"><div class="toolbar"><b>收件匣</b><span>3 則新需求</span></div><div class="mail-row"><i>✉</i><div><b>0718_工務會議記錄</b><small>請調整 A-201 會議室天花高度…</small></div><em>未建立</em></div><div class="mail-row"><i>□</i><div><b>現場交辦筆記</b><small>補上機電設備標示</small></div><em>未建立</em></div></div></article><article><div class="tool-copy"><span>02 / 執行</span><h3>Request 成為設計待辦</h3><p>確認後的 Request 會掛上圖號、修改點、期限與 Designer。設計人員不必在訊息裡找線索，而是在工作台從圖面直接開始處理。</p></div><div class="tool-window task-window"><div class="toolbar"><b>待辦作業</b><span>Designer：林</span></div><div class="task-card"><small>REQ-043 · A-201</small><b>調整二樓天花配置</b><p>會議室高度 2.7m，更新空調出風口。</p><span>今天到期　·　處理中</span></div></div></article><article><div class="tool-copy"><span>03 / 檢查</span><h3>在圖面上核對改動</h3><p>pending PDF 與 Request 位置一起呈現。Requester 能在圖面上比對成果；有問題就新增重修註記，而不是用模糊的文字往返。</p></div><div class="tool-window drawing-window"><div class="toolbar"><b>A-201 · pending</b><span>REQ-043</span></div><div class="mini-plan"><i></i><i></i><i></i><b>1</b><em>修改位置</em></div></div></article><article><div class="tool-copy"><span>04 / 確認</span><h3>決定這次修改是否通過</h3><p>Requester 在 Request 詳情中確認結果。通過就繼續進版；不符則填寫原因、標出問題位置，交回 Designer 進行下一輪修改。</p></div><div class="tool-window approve-window"><div class="toolbar"><b>Request 詳情</b><span>待確認</span></div><h4>調整二樓天花配置</h4><p>PDF 已更新為待確認版本。</p><div><button>確認進版</button><button>退回重修</button></div></div></article><article><div class="tool-copy"><span>05 / 進版</span><h3>留下可追溯的正式紀錄</h3><p>確認後，正式 PDF 與版本歷程同步更新。下一次有人問「為什麼這樣改」，團隊可以從圖面一路回到需求與決策。</p></div><div class="tool-window history-window"><div class="toolbar"><b>版本歷程</b><span>A-201</span></div><div class="version-item"><b>v3.0-r08</b><span>REQ-043 已進版</span><small>今天 · 林設計師 · 陳建築師確認</small></div><div class="version-item dim"><b>v2.1-r05</b><span>更新空調配置</span></div></div></article></div></section>
+
+    <section class="closing" id="start"><p class="eyebrow"><i></i>YOUR PROJECT, CONNECTED</p><h2>讓每個修改，<br>都成為團隊可用的知識。</h2><a class="button solid" href="../web/index.html">開啟 ArchiHub 工作台 <b>↗</b></a><p class="command">python server.py <span>→ localhost:8734</span></p></section>
+  </main>
+  <footer><a class="brand" href="#top"><span class="brand-mark">A</span>ArchiHub</a><p>BUILD A CONNECTED DRAWING PRACTICE</p><span>© 2026</span></footer>
+  <script src="app.js"></script>
+</body>
+</html>
