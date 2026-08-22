@@ -1,6 +1,6 @@
 # ArchiHub 📐 — 工程圖面的 GitHub
 
-> 🔗 [查看 ArchiHub 專案介紹網站](overview/index.html)
+> 🔗 [查看 ArchiHub 專案介紹網站](https://ang-arch1101.github.io/ArchiHub/)
 
 把 Git 的協作邏輯搬到工程圖面管理：**多來源修改要求 → 結構化 Request → 對應圖面 → 派工 → 版本進版與通知**。
 
