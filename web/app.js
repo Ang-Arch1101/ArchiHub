@@ -12,9 +12,46 @@ let pdfView = { code: null, pdfName: null, w: 800, h: 560, ok: false }; // 目�
 
 const statusName = { red: '🔴 待處理', yellow: '🟡 待確認', green: '🟢 已進版' };
 const statusStroke = { red: '#d1242f', yellow: '#d4a72c', green: '#1a7f37' };
+const DEMO_MODE = new URLSearchParams(location.search).get('demo') === '1';
+const DEMO_SEED = {
+  seq: 43,
+  config: { currentUser: '阿勳', currentProject: '928816', projects: [{ id: '928816', name: '928816 · 竹北廠區新建工程', cadDir: '模擬 CAD 資料夾', pdfDir: '模擬 PDF 資料夾', mailDir: '模擬收件匣／信件', noteDir: '模擬收件匣／筆記' }] },
+  project: { id: '928816', name: '928816 · 竹北廠區新建工程', cadDir: '模擬 CAD 資料夾', pdfDir: '模擬 PDF 資料夾', mailDir: '模擬收件匣／信件', noteDir: '模擬收件匣／筆記' },
+  requests: [
+    { id: 'REQ-042', status: 'red', drawing: 'A-201', title: '2F C4-7 柱旁落水頭東移 10cm', source: { type: 'mail', icon: '📧', from: '0718_工務會議記錄.txt', quote: '配合現場排水坡度，C4-7 柱旁落水頭請往東移 10 公分，本週五前回覆新圖。' }, requester: '陳監造', designer: '阿勳', due: '07/22（週五）', refs: ['📄 建築技術規則 §措施-排水坡度 1/100'], pos: { nx: .71, ny: .32 }, marker: 'A', log: [{ t: '07/18 09:12', e: '從信件萃取建立 Request（Demo）' }], localCopy: false },
+    { id: 'REQ-041', status: 'yellow', drawing: 'A-501', title: '廁所隔間 C11 側往東移 15cm', source: { type: 'note', icon: '📝', from: '0718_工地筆記.txt', quote: '91 2F 廁所 C11 這邊隔間要往東移 15 公分。' }, requester: '阿勳', designer: '小柯', due: '07/20', refs: ['📄 無障礙設施設計規範 §迴轉空間 150cm'], pos: { nx: .38, ny: .45 }, marker: 'B', log: [{ t: '07/16 14:03', e: '從筆記萃取建立 Request（Demo）' }, { t: '07/18 08:45', e: '小柯完成提交，等待確認' }], localCopy: true },
+    { id: 'REQ-040', status: 'green', drawing: 'E-301', title: '洗床機數量不符：圖說／數量表／價目表三方核對', source: { type: 'mail', icon: '📧', from: '0717_工務會議記錄.txt', quote: '請確認洗床機數量。' }, requester: '宏昇機電', designer: '阿勳', due: '07/15', refs: [], pos: { nx: .65, ny: .54 }, marker: 'C', log: [{ t: '07/15 09:10', e: '已確認正式進版 v4.0-r11（Demo）' }], localCopy: false }
+  ],
+  history: { 'A-201': { name: '二樓平面圖', history: [{ ver: 'v3.0-r08', date: '07/10', note: '2F 東側開口尺寸修正', designer: '阿勳', approver: '林主任', req: 'REQ-038' }, { ver: 'v2.0-r05', date: '06/28', note: '柱位配合結構調整', designer: '阿勳', approver: '林主任', req: 'REQ-031' }] }, 'A-501': { name: '廁所大樣圖', history: [{ ver: 'v2.0-r04', date: '07/05', note: '器具規格更新', designer: '小柯', approver: '林主任', req: 'REQ-035' }] }, 'E-301': { name: '機電設備配置圖', history: [{ ver: 'v4.0-r11', date: '07/15', note: '洗床機數量修正', designer: '阿勳', approver: '陳監造', req: 'REQ-040' }] } },
+  files: { cad: [{ name: 'A-201_管理大樓_2F平面圖.dwg', code: 'A-201', mtime: '07/18 09:20' }, { name: 'A-501_廁所大樣圖.dwg', code: 'A-501', mtime: '07/17 15:40' }, { name: 'E-301_機電設備配置圖.dwg', code: 'E-301', mtime: '07/15 09:10' }], pdf: [{ name: 'A-201_v3.0-r08.pdf', code: 'A-201', mtime: '07/10 14:20' }, { name: 'A-501_v2.0-r04.pdf', code: 'A-501', mtime: '07/05 11:30' }, { name: 'E-301_v4.0-r11.pdf', code: 'E-301', mtime: '07/15 09:10' }] },
+  inbox: [{ file: '0718_工務會議記錄.txt', src: 'mail', mtime: '07/18 09:12', body: 'A-201 會議室天花高度調整為 2.7m，請更新空調出風口位置。' }, { file: '0718_工地筆記.txt', src: 'note', mtime: '07/18 08:40', body: 'A-501 廁所隔間 C11 側往東移 15cm，請確認無障礙迴轉空間。' }, { file: '0717_機電協調信件.txt', src: 'mail', mtime: '07/17 16:20', body: 'E-301 出風口位置請配合天花配置更新。' }]
+};
+let demoStore = DEMO_MODE ? structuredClone(DEMO_SEED) : null;
+
+function demoNow() { return 'Demo 剛剛'; }
+function demoTransition(req, action, payload = {}) {
+  if (action === 'accept' && req.status === 'red') { req.localCopy = true; req.log.push({ t: demoNow(), e: '已接受任務，開啟模擬 CAD 副本' }); return `已接受 ${req.id}（Demo）`; }
+  if (action === 'submit' && req.status === 'red') { req.status = 'yellow'; req.log.push({ t: demoNow(), e: '完成提交，待 Requester 確認' }); return `${req.id} 已提交 → 待確認（Demo）`; }
+  if (action === 'confirm' && req.status === 'yellow') { req.status = 'green'; req.localCopy = false; const h = demoStore.history[req.drawing] || (demoStore.history[req.drawing] = { name: req.drawing, history: [] }); const ver = `v${h.history.length + 2}.0-r${String(h.history.length + 9).padStart(2, '0')}`; h.history.unshift({ ver, date: 'Demo', note: req.title, designer: req.designer, approver: req.requester, req: req.id }); req.log.push({ t: demoNow(), e: `確認正式進版 ${ver}，已通知所有人` }); return `🟢 ${req.drawing} 已正式進版 ${ver}（Demo）`; }
+  if (action === 'reject' && req.status === 'yellow') { req.status = 'red'; req.rework = { round: (req.rework?.round || 0) + 1, reason: payload.reason || '', pos: payload.pos || null, by: payload.actor, t: demoNow() }; req.log.push({ t: demoNow(), e: `退回重修：${payload.reason || '未填原因'}` }); return `↩ ${req.id} 已退回重修（Demo）`; }
+  if (action === 'decline' && req.status === 'red') { req.declined = { reason: payload.reason || '', by: payload.actor, t: demoNow() }; req.log.push({ t: demoNow(), e: '已退回詢問需求範圍' }); return `⛔ ${req.id} 已退回詢問（Demo）`; }
+  return null;
+}
+async function demoApi(path, opts = {}) {
+  if (path === '/api/state') return structuredClone({ config: demoStore.config, project: demoStore.project, requests: demoStore.requests, history: demoStore.history, files: demoStore.files, inbox: demoStore.inbox });
+  if (path === '/api/open') return { ok: true, message: '已開啟模擬檔案' };
+  if (path === '/api/config') { Object.assign(demoStore.config, opts); return { ok: true }; }
+  if (path === '/api/requests') { const id = `REQ-${String(demoStore.seq++).padStart(3, '0')}`; const req = { id, status: 'red', drawing: opts.drawing || 'A-201', title: opts.title || '未命名 Request', source: opts.source || {}, requester: opts.requester || demoStore.config.currentUser, designer: opts.designer || demoStore.config.currentUser, due: opts.due || '', refs: [], pos: opts.pos || { nx: .12, ny: .85 }, marker: 'D', log: [{ t: demoNow(), e: '從收件匣建立 Request（Demo）' }], localCopy: false }; demoStore.requests.unshift(req); return { ok: true, request: structuredClone(req) }; }
+  const actionMatch = path.match(/^\/api\/requests\/(REQ-\d+)\/(accept|submit|confirm|reject|decline)$/);
+  if (actionMatch) { const req = demoStore.requests.find(r => r.id === actionMatch[1]); const message = req && demoTransition(req, actionMatch[2], opts); return message ? { ok: true, message } : { ok: false, error: '此 Demo 狀態不允許該動作' }; }
+  const posMatch = path.match(/^\/api\/requests\/(REQ-\d+)\/pos$/);
+  if (posMatch) { const req = demoStore.requests.find(r => r.id === posMatch[1]); if (!req) return { ok: false, error: 'Request 不存在' }; req.pos = opts.pos; req.log.push({ t: demoNow(), e: '調整圖面標註位置（Demo）' }); return { ok: true, pos: req.pos }; }
+  return { ok: true };
+}
 
 /* ═══ API ═══ */
 async function api(path, opts) {
+  if (DEMO_MODE) return demoApi(path, opts);
   const res = await fetch(path, opts ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(opts) } : undefined);
   return res.json();
 }
@@ -258,6 +295,7 @@ function replyBtnHtml(r) {
   return `<div class="local-note wait">✉ ${kind}無 email 可回覆，請自行聯繫 ${r.requester}</div>`;
 }
 function openReplyMail(r, reason) {
+  if (DEMO_MODE) { toast(`✉ Demo：已模擬寄出給 ${r.requester} 的釐清通知`); return; }
   const email = parseEmail(r.source && r.source.from);
   if (!email) { toast(`✉ 此來源無 email，請自行聯繫 ${r.requester}`); return; }
   const subject = `Re: ${r.title}（${r.id}）`;
@@ -322,6 +360,7 @@ function getPos(r) {
   return { nx: r.pos.x / 800, ny: r.pos.y / 560 };
 }
 function latestPdfFor(code) {
+  if (DEMO_MODE) return null;
   const cands = S.files.pdf.filter(f => f.code === code && !f.name.toLowerCase().includes('pending'));
   return cands.length ? cands[cands.length - 1] : null; // 檔名排序，流水號最大在後
 }
@@ -389,11 +428,13 @@ async function renderSheet() {
 function renderFallback(stack, code) {
   const d = S.history[code] || { name: '', building: '', history: [] };
   pdfView = { code, pdfName: null, w: 800, h: 560, ok: false };
+  const message = DEMO_MODE ? `互動 Demo 圖面 · ${code || '—'}` : `找不到 ${code || '—'} 的出圖 PDF`;
+  const subMessage = DEMO_MODE ? '可直接拖曳雲型框，或點擊進行重新定位' : `請確認出圖資料夾中有以 ${code || '圖號'} 開頭的 PDF 檔`;
   stack.innerHTML = `<svg viewBox="0 0 800 560" xmlns="http://www.w3.org/2000/svg" class="fallback">
     <rect x="14" y="14" width="772" height="532" fill="none" stroke="#1f2328" stroke-width="1.5"/>
     <rect x="80" y="90" width="640" height="380" fill="none" stroke="#c8ccd2" stroke-width="2" stroke-dasharray="8 6"/>
-    <text x="400" y="270" text-anchor="middle" font-size="15" fill="#8b949e">找不到 ${code || '—'} 的出圖 PDF</text>
-    <text x="400" y="296" text-anchor="middle" font-size="12" fill="#8b949e">請確認出圖資料夾中有以 ${code || '圖號'} 開頭的 PDF 檔</text>
+    <text x="400" y="270" text-anchor="middle" font-size="15" fill="#8b949e">${message}</text>
+    <text x="400" y="296" text-anchor="middle" font-size="12" fill="#8b949e">${subMessage}</text>
   </svg>
   <svg viewBox="0 0 800 560" class="overlay" id="overlay"></svg>`;
   bindOverlayEvents(document.getElementById('overlay'));
