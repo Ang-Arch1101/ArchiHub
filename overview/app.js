@@ -113,16 +113,17 @@ if (cloudMark) {
 }
 
 const drawingLinkPanel = document.querySelector('.drawing-link-panel');
+const demoPath = location.pathname.includes('/overview/') ? '../web/index.html?demo=1' : './web/index.html?demo=1';
 if (drawingLinkPanel) {
   const simulatedLink = drawingLinkPanel.querySelector('a');
-  simulatedLink.href = '../web/index.html?demo=1';
+  simulatedLink.href = demoPath;
   simulatedLink.textContent = '開啟模擬工作台 ↗';
   drawingLinkPanel.insertAdjacentHTML('beforeend', '<div class="drawing-app-icons" aria-label="可模擬檢視 Revit 與 CAD 圖面"><span class="app-icon revit">R</span><span class="app-icon cad">CAD</span></div>');
 }
 
 const demoEntry = document.querySelector('.closing .button');
 if (demoEntry) {
-  demoEntry.href = '../web/index.html?demo=1';
+  demoEntry.href = demoPath;
   demoEntry.firstChild.textContent = '開啟 ArchiHub 工作台 ';
 }
 

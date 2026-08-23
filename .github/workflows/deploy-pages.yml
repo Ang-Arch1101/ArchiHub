@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - overview/**
+      - web/**
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 
@@ -28,10 +29,15 @@ jobs:
         uses: actions/checkout@v6
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Upload overview site
+      - name: Build Pages site
+        run: |
+          mkdir -p _site/web
+          cp -R overview/. _site/
+          cp -R web/. _site/web/
+      - name: Upload Pages site
         uses: actions/upload-pages-artifact@v4
         with:
-          path: overview
+          path: _site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
