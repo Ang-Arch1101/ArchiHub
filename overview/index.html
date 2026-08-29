@@ -41,15 +41,90 @@
     <section class="manifesto"><p>工程專案最重要的資訊，從來不是孤立的檔案。它們是需求、圖面、決策與人的關係。</p><span>ARCIHUB / 01</span></section>
 
     <section class="graph-section" id="graph">
-      <div class="section-head"><div><p class="eyebrow"><i></i>ONE REQUEST, MANY CONNECTIONS</p><h2>一個 Request，<br>看見整段協作脈絡。</h2></div><p>點擊任一節點，探索它在圖面流程中的角色。每條線都代表能被追蹤、交接與驗證的關係。</p></div>
-      <div class="process-map" aria-label="ArchiHub Request 處理流程">
-        <div class="process-track"></div>
-        <button class="process-step active" data-title="接收需求" data-copy="Email、現場筆記與口頭交辦進到同一個收件匣；系統保留原文，等待被整理成 Request。"><i>01</i><span>接收</span><small>集中需求來源</small></button>
-        <button class="process-step" data-title="執行修改" data-copy="Designer 接手 Request，從工作清單進入對應圖號與修改位置，完成設計調整並產出 pending PDF。"><i>02</i><span>執行</span><small>派工與處理</small></button>
-        <button class="process-step" data-title="檢查圖面" data-copy="Requester 開啟 pending PDF，直接對照原始需求與標記位置；有落差時可以回到圖面上提出重修。"><i>03</i><span>檢查</span><small>比對修改結果</small></button>
-        <button class="process-step" data-title="確認結果" data-copy="當內容正確，Requester 確認這次修改。責任、圖號與時間都會被寫入正式的審核紀錄。"><i>04</i><span>確認</span><small>核准交付內容</small></button>
-        <button class="process-step" data-title="正式進版" data-copy="確認後，pending PDF 轉為正式版本；ArchiHub 將版本號、處理人與修訂原因保存到歷程中。"><i>05</i><span>進版</span><small>留下版本記憶</small></button>
-        <div class="process-note"><span id="process-title">接收需求</span><p id="process-copy">Email、現場筆記與口頭交辦進到同一個收件匣；系統保留原文，等待被整理成 Request。</p></div>
+      <div class="section-head"><div><p class="eyebrow"><i></i>REQUEST → DRAWING → PROJECT</p><h2>從一個任務，<br>一路看見整個專案。</h2></div><p>沿著工作節點深入圖面歷史與專案關係。每次縮放都保留人、版本與決策的上下文。</p></div>
+      <div class="semantic-map" data-current-level="request" aria-label="ArchiHub 語意縮放專案圖解">
+        <nav class="semantic-breadcrumb" aria-label="圖解層級">
+          <button class="semantic-crumb is-active" type="button" data-level-target="request" aria-current="step"><span>01</span>Request</button><i>→</i>
+          <button class="semantic-crumb" type="button" data-level-target="drawing"><span>02</span>Drawing</button><i>→</i>
+          <button class="semantic-crumb" type="button" data-level-target="project"><span>03</span>Project</button>
+        </nav>
+
+        <div class="semantic-viewport">
+          <section class="semantic-level is-active" data-level="request" aria-hidden="false">
+            <header class="semantic-level-head"><div><span>LEVEL 01 / REQUEST WORKFLOW</span><h3>REQ-043 · Level 02 Core Revision</h3></div><p>需求不只被完成，也被連回正確的圖面與版本。</p></header>
+            <div class="semantic-canvas-scroll">
+              <div class="semantic-canvas request-canvas">
+                <svg class="semantic-links" viewBox="0 0 1000 430" aria-hidden="true">
+                  <defs><marker id="request-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs>
+                  <path class="semantic-link main-link" d="M70 245 L190 150 L320 235 L450 125 L570 245 L700 140 L820 245 L940 140"></path>
+                  <path class="semantic-link return-link" d="M820 282 C770 397 630 397 574 286" marker-end="url(#request-arrow)"></path>
+                  <text x="680" y="389">RETURN FOR REVISION</text>
+                </svg>
+
+                <div class="source-cluster" aria-label="需求來源"><span>Email</span><span>Notes</span><span>Meeting</span><span>Site instruction</span></div>
+                <button class="semantic-node request-node node-capture" type="button" data-detail="Email、筆記、會議與現場交辦先被保留成可追溯的原始需求。"><i>01</i><b>Capture</b><small>接收來源</small></button>
+                <button class="semantic-node request-node node-extract" type="button" data-detail="萃取 requester、designer、approver、deadline、scope、reference 與 drawing clues。"><i>02</i><b>Extract</b><small>整理資訊</small></button>
+                <button class="semantic-node request-node node-locate is-key" type="button" data-detail="把需求定位到 Project → Drawing → Position，避免修改落在錯誤圖面。"><i>03</i><b>Locate</b><small>專案 · 圖面 · 位置</small></button>
+                <button class="semantic-node request-node node-assign" type="button" data-detail="指定負責人、審核角色與期限，讓交接責任清楚可見。"><i>04</i><b>Assign</b><small>分派角色</small></button>
+                <button class="semantic-node request-node node-work is-key" type="button" data-detail="工程師從任務直接開啟正確的 CAD、Revit 或工作檔完成修改。"><i>05</i><b>Work</b><small>進入工作檔</small></button>
+                <button class="semantic-node request-node node-submit" type="button" data-detail="提交 pending PDF 與本次 revision，等待 requester 與 approver 檢查。"><i>06</i><b>Submit</b><small>送出待審版本</small></button>
+                <button class="semantic-node request-node node-review is-key" type="button" data-detail="確認則前往 Publish；退回時沿著橘色迴路回到 Work 並留下問題。"><i>07</i><b>Review</b><small>確認或退回</small></button>
+                <button class="semantic-node request-node node-publish is-key semantic-portal" type="button" data-level-target="drawing" data-detail="正式版本已建立。點擊打開 A-201 的完整修訂歷史。"><i>08</i><b>Publish</b><small>正式進版</small><em>OPEN HISTORY ↗</em></button>
+              </div>
+            </div>
+          </section>
+
+          <section class="semantic-level" data-level="drawing" aria-hidden="true" inert>
+            <header class="semantic-level-head"><div><button class="semantic-back" type="button" data-level-target="request">← Request Workflow</button><span>LEVEL 02 / DRAWING HISTORY</span><h3>A-201 · Second Floor Plan</h3></div><p>每個版本都能回到促成它的 Request、角色與審核脈絡。</p></header>
+            <div class="semantic-canvas-scroll">
+              <div class="semantic-canvas drawing-canvas">
+                <svg class="semantic-links" viewBox="0 0 1000 460" aria-hidden="true">
+                  <path class="semantic-link" d="M105 105 L355 105 L700 230"></path><path class="semantic-link" d="M105 230 L355 230 L700 230"></path><path class="semantic-link active-link" d="M105 355 L355 355 L700 230"></path>
+                  <path class="semantic-link people-link" d="M700 230 L915 95 M700 230 L915 230 M700 230 L915 365"></path>
+                  <text x="190" y="89">CREATED</text><text x="190" y="214">REVISED</text><text x="190" y="339">CURRENT</text>
+                </svg>
+                <button class="semantic-node history-request req-018" type="button" data-detail="REQ-018 建立 R21，保留最初的二樓平面調整依據。"><span>REQ-018</span><small>Published</small></button>
+                <button class="semantic-node history-revision rev-21" type="button" data-detail="R21 · First coordinated issue"><b>R21</b><small>First issue</small></button>
+                <button class="semantic-node history-request req-031" type="button" data-detail="REQ-031 經設計與審核協作後更新為 R23。"><span>REQ-031</span><small>Published</small></button>
+                <button class="semantic-node history-revision rev-23" type="button" data-detail="R23 · Coordination update"><b>R23</b><small>Coordination</small></button>
+                <button class="semantic-node history-request req-043 is-current" type="button" data-detail="目前所在的 REQ-043，完成 Level 02 core revision 並發布 R24。"><em>YOU ARE HERE</em><span>REQ-043</span><small>Published</small></button>
+                <button class="semantic-node history-revision rev-24 is-current" type="button" data-detail="R24 是 A-201 目前正式版本，所有決策仍可反查。"><em>CURRENT</em><b>R24</b><small>Core revision</small></button>
+                <button class="semantic-node drawing-hub semantic-portal" type="button" data-level-target="project" data-detail="A-201 同時連到其他圖面、Request、版本與專案成員。點擊查看整個 Project 928816。"><span>DRAWING</span><b>A-201</b><small>Second Floor Plan</small><em>OPEN PROJECT ↗</em></button>
+                <button class="semantic-node role-node role-designer" type="button" data-detail="Designer 完成 R24 的圖面修改與提交。"><span>Designer</span><b>Designer A</b></button>
+                <button class="semantic-node role-node role-requester" type="button" data-detail="Requester 提供修改依據並確認交付內容。"><span>Requester</span><b>Site Team</b></button>
+                <button class="semantic-node role-node role-approver" type="button" data-detail="Approver 核准 R24 成為正式版本。"><span>Approver</span><b>Project Lead</b></button>
+              </div>
+            </div>
+          </section>
+
+          <section class="semantic-level" data-level="project" aria-hidden="true" inert>
+            <header class="semantic-level-head"><div><button class="semantic-back" type="button" data-level-target="drawing">← A-201 History</button><span>LEVEL 03 / PROJECT GRAPH</span><h3>PROJECT 928816</h3></div><p>圖面、需求、版本與人不是清單，而是一張可持續閱讀的專案關係圖。</p></header>
+            <div class="semantic-canvas-scroll">
+              <div class="semantic-canvas project-canvas">
+                <svg class="semantic-links" viewBox="0 0 1000 500" aria-hidden="true">
+                  <path class="semantic-link project-spoke" d="M500 250 L155 95 M500 250 L330 100 M500 250 L690 90 M500 250 L845 155 M500 250 L820 365 M500 250 L630 425 M500 250 L335 425 M500 250 L150 350"></path>
+                  <path class="semantic-link relation-link" d="M155 95 L150 350 M330 100 L335 425 M690 90 L630 425 M845 155 L820 365"></path>
+                </svg>
+                <button class="semantic-node project-hub" type="button" data-detail="Project 928816 將所有圖面、Request、版本與角色連在同一個可觀察脈絡中。"><span>PROJECT</span><b>928816</b><small>6 active · 3 reviews</small></button>
+                <button class="semantic-node project-drawing drawing-a101" type="button" data-detail="A-101 · Ground Floor Plan"><span>DRAWING</span><b>A-101</b></button>
+                <button class="semantic-node project-drawing drawing-a201 is-current" type="button" data-detail="A-201 · Second Floor Plan · Current R24"><em>CURRENT</em><span>DRAWING</span><b>A-201</b></button>
+                <button class="semantic-node project-drawing drawing-s203" type="button" data-detail="S-203 · Structural Framing"><span>DRAWING</span><b>S-203</b></button>
+                <button class="semantic-node project-drawing drawing-m101" type="button" data-detail="M-101 · Mechanical Layout"><span>DRAWING</span><b>M-101</b></button>
+                <button class="semantic-node project-drawing drawing-e201" type="button" data-detail="E-201 · Electrical Plan"><span>DRAWING</span><b>E-201</b></button>
+                <button class="semantic-node project-request request-043" type="button" data-detail="REQ-043 · Published · A-201 / R24"><span>REQ-043</span><small>Published</small></button>
+                <button class="semantic-node project-request request-051" type="button" data-detail="REQ-051 · In Progress · S-203"><span>REQ-051</span><small>In Progress</small></button>
+                <button class="semantic-node project-request request-052" type="button" data-detail="REQ-052 · Waiting Review · M-101"><span>REQ-052</span><small>Waiting Review</small></button>
+                <button class="semantic-node project-role designer-a" type="button" data-detail="Designer A · 3 active items"><span>Designer A</span><small>3 active</small></button>
+                <button class="semantic-node project-role designer-b" type="button" data-detail="Designer B · 3 active items"><span>Designer B</span><small>3 active</small></button>
+                <button class="semantic-node project-role requester-role" type="button" data-detail="Requester · connects site instructions to drawings"><span>Requester</span><small>Site Team</small></button>
+                <button class="semantic-node project-role approver-role" type="button" data-detail="Approver · 3 reviews waiting across this project"><span>Approver</span><small>3 reviews</small></button>
+                <span class="revision-tag revision-r24">R24</span><span class="revision-tag revision-r08">R08</span><span class="revision-tag revision-r11">R11</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="semantic-caption" aria-live="polite"><span>01 / REQUEST</span><p>人執行工作，ArchiHub 記錄關係，專案因此變得可觀察。</p></div>
       </div>
     </section>
 

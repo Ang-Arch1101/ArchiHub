@@ -10,18 +10,88 @@ document.querySelectorAll('.hero-network .node').forEach((node) => {
   node.addEventListener('click', showNote);
 });
 
-const processTitle = document.getElementById('process-title');
-const processCopy = document.getElementById('process-copy');
-document.querySelectorAll('.process-step').forEach((step) => {
+const semanticMap = document.querySelector('.semantic-map');
+const semanticCaption = semanticMap?.querySelector('.semantic-caption');
+const semanticCaptionLabel = semanticCaption?.querySelector('span');
+const semanticCaptionCopy = semanticCaption?.querySelector('p');
+const semanticMotionReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const semanticDefaults = {
+  request: ['01 / REQUEST', '人執行工作，ArchiHub 記錄關係，專案因此變得可觀察。'],
+  drawing: ['02 / DRAWING', 'A-201 的每一次修訂，都能回到促成它的 Request 與審核角色。'],
+  project: ['03 / PROJECT', 'Project 928816 將圖面、需求、版本與人連成一張可持續閱讀的關係圖。'],
+};
+
+const updateSemanticCaption = (labelText, copyText) => {
+  if (!semanticCaption || !semanticCaptionLabel || !semanticCaptionCopy) return;
+  semanticCaptionLabel.textContent = labelText;
+  semanticCaptionCopy.textContent = copyText;
+  semanticCaption.classList.remove('is-updating');
+  void semanticCaption.offsetWidth;
+  semanticCaption.classList.add('is-updating');
+};
+
+const showSemanticLevel = (targetLevel, trigger) => {
+  if (!semanticMap || semanticMap.dataset.switching === 'true') return;
+  const currentLevel = semanticMap.dataset.currentLevel;
+  const currentPanel = semanticMap.querySelector(`.semantic-level[data-level="${currentLevel}"]`);
+  const nextPanel = semanticMap.querySelector(`.semantic-level[data-level="${targetLevel}"]`);
+  if (!nextPanel || currentLevel === targetLevel) return;
+
+  semanticMap.dataset.switching = 'true';
+  trigger?.classList.add('is-portal-active');
+  currentPanel?.classList.add('is-exiting');
+  const exitDelay = semanticMotionReduced ? 0 : 210;
+
+  window.setTimeout(() => {
+    currentPanel?.classList.remove('is-active', 'is-exiting');
+    currentPanel?.setAttribute('aria-hidden', 'true');
+    currentPanel?.setAttribute('inert', '');
+    nextPanel.classList.add('is-active', 'is-entering');
+    nextPanel.setAttribute('aria-hidden', 'false');
+    nextPanel.removeAttribute('inert');
+    nextPanel.querySelector('.semantic-canvas-scroll')?.scrollTo({ left: 0, behavior: 'auto' });
+    semanticMap.dataset.currentLevel = targetLevel;
+
+    semanticMap.querySelectorAll('.semantic-crumb').forEach((crumb) => {
+      const active = crumb.dataset.levelTarget === targetLevel;
+      crumb.classList.toggle('is-active', active);
+      if (active) crumb.setAttribute('aria-current', 'step');
+      else crumb.removeAttribute('aria-current');
+    });
+
+    const [labelText, copyText] = semanticDefaults[targetLevel];
+    updateSemanticCaption(labelText, copyText);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => nextPanel.classList.remove('is-entering')));
+    window.setTimeout(() => {
+      semanticMap.dataset.switching = 'false';
+      trigger?.classList.remove('is-portal-active');
+    }, semanticMotionReduced ? 10 : 390);
+  }, exitDelay);
+};
+
+semanticMap?.querySelectorAll('[data-level-target]').forEach((control) => {
+  control.addEventListener('click', () => showSemanticLevel(control.dataset.levelTarget, control));
+});
+
+semanticMap?.querySelectorAll('.semantic-node').forEach((node) => {
   const explain = () => {
-    document.querySelectorAll('.process-step').forEach((item) => item.classList.remove('active'));
-    step.classList.add('active');
-    processTitle.textContent = step.dataset.title;
-    processCopy.textContent = step.dataset.copy;
+    const level = node.closest('.semantic-level')?.dataset.level || 'request';
+    const [labelText] = semanticDefaults[level];
+    updateSemanticCaption(labelText, node.dataset.detail);
   };
-  step.addEventListener('mouseenter', explain);
-  step.addEventListener('focus', explain);
-  step.addEventListener('click', explain);
+  const restore = () => {
+    const level = semanticMap.dataset.currentLevel;
+    if (!node.classList.contains('is-highlighted')) updateSemanticCaption(...semanticDefaults[level]);
+  };
+  node.addEventListener('mouseenter', explain);
+  node.addEventListener('focus', explain);
+  node.addEventListener('mouseleave', restore);
+  node.addEventListener('blur', restore);
+  node.addEventListener('click', () => {
+    node.closest('.semantic-level')?.querySelectorAll('.semantic-node').forEach((item) => item.classList.remove('is-highlighted'));
+    node.classList.add('is-highlighted');
+    explain();
+  });
 });
 
 const workflowCards = document.querySelectorAll('.tool-explainer article');
