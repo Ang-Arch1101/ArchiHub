@@ -51,25 +51,21 @@
 
         <div class="semantic-viewport">
           <section class="semantic-level is-active" data-level="request" aria-hidden="false">
-            <header class="semantic-level-head"><div><span>LEVEL 01 / REQUEST WORKFLOW</span><h3>REQ-043 · Level 02 Core Revision</h3></div><p>需求不只被完成，也被連回正確的圖面與版本。</p></header>
+            <header class="semantic-level-head"><div><span>LEVEL 01 / REQUEST WORKFLOW</span><h3>需求處理流程 · 從接收至正式發布</h3></div><p>由左至右依序閱讀；每個階段都清楚標示動作與產出。</p></header>
             <div class="semantic-canvas-scroll">
               <div class="semantic-canvas request-canvas">
-                <svg class="semantic-links" viewBox="0 0 1000 430" aria-hidden="true">
-                  <defs><marker id="request-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs>
-                  <path class="semantic-link main-link" d="M70 245 L190 150 L320 235 L450 125 L570 245 L700 140 L820 245 L940 140"></path>
-                  <path class="semantic-link return-link" d="M820 282 C770 397 630 397 574 286" marker-end="url(#request-arrow)"></path>
-                  <text x="680" y="389">RETURN FOR REVISION</text>
-                </svg>
-
-                <div class="source-cluster" aria-label="需求來源"><span>Email</span><span>Notes</span><span>Meeting</span><span>Site instruction</span></div>
-                <button class="semantic-node request-node node-capture" type="button" data-detail="Email、筆記、會議與現場交辦先被保留成可追溯的原始需求。"><i>01</i><b>Capture</b><small>接收來源</small></button>
-                <button class="semantic-node request-node node-extract" type="button" data-detail="萃取 requester、designer、approver、deadline、scope、reference 與 drawing clues。"><i>02</i><b>Extract</b><small>整理資訊</small></button>
-                <button class="semantic-node request-node node-locate is-key" type="button" data-detail="把需求定位到 Project → Drawing → Position，避免修改落在錯誤圖面。"><i>03</i><b>Locate</b><small>專案 · 圖面 · 位置</small></button>
-                <button class="semantic-node request-node node-assign" type="button" data-detail="指定負責人、審核角色與期限，讓交接責任清楚可見。"><i>04</i><b>Assign</b><small>分派角色</small></button>
-                <button class="semantic-node request-node node-work is-key" type="button" data-detail="工程師從任務直接開啟正確的 CAD、Revit 或工作檔完成修改。"><i>05</i><b>Work</b><small>進入工作檔</small></button>
-                <button class="semantic-node request-node node-submit" type="button" data-detail="提交 pending PDF 與本次 revision，等待 requester 與 approver 檢查。"><i>06</i><b>Submit</b><small>送出待審版本</small></button>
-                <button class="semantic-node request-node node-review is-key" type="button" data-detail="確認則前往 Publish；退回時沿著橘色迴路回到 Work 並留下問題。"><i>07</i><b>Review</b><small>確認或退回</small></button>
-                <button class="semantic-node request-node node-publish is-key semantic-portal" type="button" data-level-target="drawing" data-detail="正式版本已建立。點擊打開 A-201 的完整修訂歷史。"><i>08</i><b>Publish</b><small>正式進版</small><em>OPEN HISTORY ↗</em></button>
+                <div class="request-example"><span>範例需求</span><p>調整二樓會議室天花高度與空調出風口</p></div>
+                <ol class="request-timeline" aria-label="需求處理的八個階段">
+                  <li><button class="semantic-node request-node node-capture" type="button" data-detail="信件、筆記、會議與現場交辦先被保留成可追溯的原始需求。"><i>01</i><b>接收需求</b><small>CAPTURE</small><span>信件、筆記、會議</span></button></li>
+                  <li><button class="semantic-node request-node node-extract" type="button" data-detail="整理提出人、負責人、審核人、期限、範圍與參考資料。"><i>02</i><b>整理資訊</b><small>EXTRACT</small><span>角色、期限、範圍</span></button></li>
+                  <li><button class="semantic-node request-node node-locate is-key" type="button" data-detail="把需求定位到正確的專案、圖面與修改位置，避免改錯檔案。"><i>03</i><b>定位圖面</b><small>LOCATE</small><span>專案、圖號、位置</span></button></li>
+                  <li><button class="semantic-node request-node node-assign" type="button" data-detail="指定負責人、審核角色與完成期限，讓交接責任清楚可見。"><i>04</i><b>指派工作</b><small>ASSIGN</small><span>負責人與期限</span></button></li>
+                  <li><button class="semantic-node request-node node-work is-key" type="button" data-detail="工程師從任務直接開啟正確的 CAD、Revit 或工作檔完成修改。"><i>05</i><b>執行修改</b><small>WORK</small><span>開啟正確工作檔</span></button></li>
+                  <li><button class="semantic-node request-node node-submit" type="button" data-detail="提交待審 PDF 與本次修訂版本，等待需求提出人與審核人檢查。"><i>06</i><b>提交版本</b><small>SUBMIT</small><span>待審 PDF</span></button></li>
+                  <li><button class="semantic-node request-node node-review is-key" type="button" data-detail="確認後前往正式發布；若退回，則回到執行修改並留下具體問題。"><i>07</i><b>審核確認</b><small>REVIEW</small><span>通過或退回</span></button></li>
+                  <li><button class="semantic-node request-node node-publish is-key semantic-portal" type="button" data-level-target="drawing" data-detail="建立正式版本並保存完整歷史；點擊可繼續查看圖面歷程。"><i>08</i><b>正式發布</b><small>PUBLISH</small><span>建立正式版本</span><em>查看圖面歷程 ↗</em></button></li>
+                </ol>
+                <div class="request-return" aria-label="審核退回時回到執行修改"><span>← 審核退回：回到「執行修改」</span></div>
               </div>
             </div>
           </section>
