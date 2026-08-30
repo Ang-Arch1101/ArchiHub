@@ -124,9 +124,13 @@ if (requestCanvas) {
   };
 
   const runRequestGuide = ({ force = false } = {}) => {
-    if (semanticMotionReduced || requestCanvas.dataset.flowState !== 'initial' || (requestGuideHasPlayed && !force)) return;
+    if (requestCanvas.dataset.flowState !== 'initial' || (requestGuideHasPlayed && !force)) return;
     clearRequestGuide();
     requestGuideHasPlayed = true;
+    if (semanticMotionReduced) {
+      timelineNodes.at(-1)?.classList.add('is-guide-ready');
+      return;
+    }
     requestCanvas.classList.add('is-guiding');
 
     timelineNodes.forEach((node, index) => {
@@ -146,7 +150,6 @@ if (requestCanvas) {
       timelineNodes.forEach((node) => node.classList.remove('is-guide-current'));
       finalNode?.classList.add('is-guide-ready', 'is-guide-final');
     }, finalStart));
-    requestGuideTimers.push(window.setTimeout(() => clearRequestGuide({ keepReady: true }), finalStart + 1950));
   };
 
   const stateCopy = {
@@ -196,7 +199,8 @@ if (requestCanvas) {
   };
 
   requestCanvas.addEventListener('click', (event) => {
-    if (event.target.closest('button')) clearRequestGuide();
+    const clickedButton = event.target.closest('button');
+    if (clickedButton === reviewNode || clickedButton === resetAction || clickedButton?.closest('.review-actions')) clearRequestGuide();
   }, true);
 
   reviewNode?.addEventListener('click', () => setRequestState('reviewing'));
