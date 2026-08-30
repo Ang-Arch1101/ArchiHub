@@ -110,6 +110,43 @@ if (requestCanvas) {
   const placeholderTitle = publishPlaceholder?.querySelector('b');
   const placeholderCopy = publishPlaceholder?.querySelector('small');
   const resetAction = requestCanvas.querySelector('.request-reset');
+  const timelineNodes = [...requestCanvas.querySelectorAll('.request-timeline .request-node')];
+  let requestGuideTimers = [];
+  let requestGuideHasPlayed = false;
+
+  const clearRequestGuide = () => {
+    requestGuideTimers.forEach((timer) => window.clearTimeout(timer));
+    requestGuideTimers = [];
+    requestCanvas.classList.remove('is-guiding');
+    timelineNodes.forEach((node) => node.classList.remove('is-guide-current', 'is-guide-past', 'is-guide-final'));
+    timelineNodes.forEach((node) => node.parentElement?.classList.remove('is-guide-past'));
+  };
+
+  const runRequestGuide = ({ force = false } = {}) => {
+    if (semanticMotionReduced || requestCanvas.dataset.flowState !== 'initial' || (requestGuideHasPlayed && !force)) return;
+    clearRequestGuide();
+    requestGuideHasPlayed = true;
+    requestCanvas.classList.add('is-guiding');
+
+    timelineNodes.forEach((node, index) => {
+      requestGuideTimers.push(window.setTimeout(() => {
+        timelineNodes.forEach((item) => item.classList.remove('is-guide-current'));
+        timelineNodes.slice(0, index).forEach((item) => {
+          item.classList.add('is-guide-past');
+          item.parentElement?.classList.add('is-guide-past');
+        });
+        node.classList.add('is-guide-current');
+      }, index * 600));
+    });
+
+    const finalNode = timelineNodes.at(-1);
+    const finalStart = timelineNodes.length * 600;
+    requestGuideTimers.push(window.setTimeout(() => {
+      timelineNodes.forEach((node) => node.classList.remove('is-guide-current'));
+      finalNode?.classList.add('is-guide-final');
+    }, finalStart));
+    requestGuideTimers.push(window.setTimeout(clearRequestGuide, finalStart + 1950));
+  };
 
   const stateCopy = {
     initial: '點擊「審核確認」，模擬通過或退回兩種處理結果。',
@@ -157,6 +194,10 @@ if (requestCanvas) {
     updateSemanticCaption('01 / REQUEST', stateCopy[state]);
   };
 
+  requestCanvas.addEventListener('click', (event) => {
+    if (event.target.closest('button')) clearRequestGuide();
+  }, true);
+
   reviewNode?.addEventListener('click', () => setRequestState('reviewing'));
   approveAction?.addEventListener('click', () => setRequestState('approved'));
   returnAction?.addEventListener('click', () => setRequestState('returned'));
@@ -164,6 +205,7 @@ if (requestCanvas) {
     requestCanvas.querySelectorAll('.semantic-node').forEach((node) => node.classList.remove('is-highlighted'));
     requestCanvas.classList.remove('show-role-relation', 'show-return-relation');
     setRequestState('initial');
+    window.requestAnimationFrame(() => runRequestGuide({ force: true }));
   });
 
   resubmitAction?.addEventListener('click', (event) => {
@@ -191,6 +233,13 @@ if (requestCanvas) {
   returnCard?.addEventListener('focus', showReturnRelation);
   returnCard?.addEventListener('mouseleave', hideReturnRelation);
   returnCard?.addEventListener('blur', hideReturnRelation);
+
+  const requestGuideObserver = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    runRequestGuide();
+    requestGuideObserver.disconnect();
+  }, { threshold: 0.4 });
+  requestGuideObserver.observe(requestCanvas.closest('.semantic-level'));
 }
 
 const workflowCards = document.querySelectorAll('.tool-explainer article');
