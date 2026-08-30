@@ -114,11 +114,12 @@ if (requestCanvas) {
   let requestGuideTimers = [];
   let requestGuideHasPlayed = false;
 
-  const clearRequestGuide = () => {
+  const clearRequestGuide = ({ keepReady = false } = {}) => {
     requestGuideTimers.forEach((timer) => window.clearTimeout(timer));
     requestGuideTimers = [];
     requestCanvas.classList.remove('is-guiding');
     timelineNodes.forEach((node) => node.classList.remove('is-guide-current', 'is-guide-past', 'is-guide-final'));
+    if (!keepReady) timelineNodes.forEach((node) => node.classList.remove('is-guide-ready'));
     timelineNodes.forEach((node) => node.parentElement?.classList.remove('is-guide-past'));
   };
 
@@ -136,16 +137,16 @@ if (requestCanvas) {
           item.parentElement?.classList.add('is-guide-past');
         });
         node.classList.add('is-guide-current');
-      }, index * 600));
+      }, index * 400));
     });
 
     const finalNode = timelineNodes.at(-1);
-    const finalStart = timelineNodes.length * 600;
+    const finalStart = timelineNodes.length * 400;
     requestGuideTimers.push(window.setTimeout(() => {
       timelineNodes.forEach((node) => node.classList.remove('is-guide-current'));
-      finalNode?.classList.add('is-guide-final');
+      finalNode?.classList.add('is-guide-ready', 'is-guide-final');
     }, finalStart));
-    requestGuideTimers.push(window.setTimeout(clearRequestGuide, finalStart + 1950));
+    requestGuideTimers.push(window.setTimeout(() => clearRequestGuide({ keepReady: true }), finalStart + 1950));
   };
 
   const stateCopy = {
