@@ -130,7 +130,7 @@ if (requestCanvas) {
     roleNode.classList.toggle('is-highlighted', state === 'returned');
 
     const resultLabels = {
-      initial: '選擇結果',
+      initial: '點擊選擇',
       reviewing: '請選擇',
       approved: '審核通過',
       returned: '已退回',
