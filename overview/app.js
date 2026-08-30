@@ -94,6 +94,105 @@ semanticMap?.querySelectorAll('.semantic-node').forEach((node) => {
   });
 });
 
+const requestCanvas = semanticMap?.querySelector('.request-canvas');
+if (requestCanvas) {
+  const reviewNode = requestCanvas.querySelector('.node-review');
+  const reviewResult = reviewNode?.querySelector('.review-result');
+  const reviewActions = requestCanvas.querySelector('.review-actions');
+  const approveAction = requestCanvas.querySelector('.review-approve');
+  const returnAction = requestCanvas.querySelector('.review-return');
+  const roleNode = requestCanvas.querySelector('.request-role');
+  const returnCard = requestCanvas.querySelector('.request-return-card');
+  const resubmitAction = requestCanvas.querySelector('.return-resubmit');
+  const publishNode = requestCanvas.querySelector('.node-publish');
+  const publishLink = requestCanvas.querySelector('.publish-link');
+  const publishPlaceholder = requestCanvas.querySelector('.publish-placeholder');
+  const placeholderTitle = publishPlaceholder?.querySelector('b');
+  const placeholderCopy = publishPlaceholder?.querySelector('small');
+  const resetAction = requestCanvas.querySelector('.request-reset');
+
+  const stateCopy = {
+    initial: '點擊「審核確認」，模擬通過或退回兩種處理結果。',
+    reviewing: '由同一位指派／審圖負責人選擇通過或退回修改。',
+    approved: '審核已通過；正式發布入口已開啟，可以進入 Drawing 查看圖面關係。',
+    returned: '審核已退回；修改單記錄問題、圖面位置與期限，並回到執行修改。',
+    reprocessing: '修改完成後，工作重新經過提交版本並回到審核確認。',
+  };
+
+  const setRequestState = (state) => {
+    requestCanvas.dataset.flowState = state;
+    reviewActions.hidden = state !== 'reviewing';
+    returnCard.hidden = state !== 'returned';
+    publishNode.hidden = state !== 'approved';
+    publishLink.hidden = state !== 'approved';
+    publishPlaceholder.hidden = state === 'reviewing' || state === 'approved' || state === 'reprocessing';
+    reviewNode.setAttribute('aria-expanded', String(state === 'reviewing'));
+    roleNode.classList.toggle('is-highlighted', state === 'returned');
+
+    const resultLabels = {
+      initial: '選擇結果',
+      reviewing: '請選擇',
+      approved: '審核通過',
+      returned: '已退回',
+      reprocessing: '重新提交中',
+    };
+    reviewResult.textContent = resultLabels[state];
+
+    if (state === 'approved') {
+      publishNode.classList.remove('is-revealed');
+      void publishNode.offsetWidth;
+      publishNode.classList.add('is-revealed');
+    } else {
+      publishNode.classList.remove('is-revealed');
+    }
+
+    if (state === 'returned') {
+      placeholderTitle.textContent = '已退回修改';
+      placeholderCopy.textContent = '完成修改並重新提交後，再次進行審核';
+    } else {
+      placeholderTitle.textContent = '等待審核結果';
+      placeholderCopy.textContent = '通過後顯示正式發布入口';
+    }
+
+    updateSemanticCaption('01 / REQUEST', stateCopy[state]);
+  };
+
+  reviewNode?.addEventListener('click', () => setRequestState('reviewing'));
+  approveAction?.addEventListener('click', () => setRequestState('approved'));
+  returnAction?.addEventListener('click', () => setRequestState('returned'));
+  resetAction?.addEventListener('click', () => {
+    requestCanvas.querySelectorAll('.semantic-node').forEach((node) => node.classList.remove('is-highlighted'));
+    requestCanvas.classList.remove('show-role-relation', 'show-return-relation');
+    setRequestState('initial');
+  });
+
+  resubmitAction?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setRequestState('reprocessing');
+    window.setTimeout(() => {
+      setRequestState('reviewing');
+      reviewNode?.focus();
+    }, semanticMotionReduced ? 0 : 780);
+  });
+
+  const showRoleRelation = () => requestCanvas.classList.add('show-role-relation');
+  const hideRoleRelation = () => requestCanvas.classList.remove('show-role-relation');
+  roleNode?.addEventListener('mouseenter', showRoleRelation);
+  roleNode?.addEventListener('focus', showRoleRelation);
+  roleNode?.addEventListener('mouseleave', hideRoleRelation);
+  roleNode?.addEventListener('blur', hideRoleRelation);
+
+  const showReturnRelation = () => {
+    requestCanvas.classList.add('show-return-relation');
+    updateSemanticCaption('01 / REQUEST', returnCard.dataset.detail);
+  };
+  const hideReturnRelation = () => requestCanvas.classList.remove('show-return-relation');
+  returnCard?.addEventListener('mouseenter', showReturnRelation);
+  returnCard?.addEventListener('focus', showReturnRelation);
+  returnCard?.addEventListener('mouseleave', hideReturnRelation);
+  returnCard?.addEventListener('blur', hideReturnRelation);
+}
+
 const workflowCards = document.querySelectorAll('.tool-explainer article');
 const workflowObserver = new IntersectionObserver((entries) => {
   entries.forEach((entry) => entry.target.classList.toggle('is-visible', entry.isIntersecting));
