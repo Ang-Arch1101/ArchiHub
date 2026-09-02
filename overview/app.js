@@ -99,6 +99,38 @@ const runHeroConnectionLoop = () => {
 heroMotionQuery.addEventListener?.('change', runHeroConnectionLoop);
 runHeroConnectionLoop();
 
+const skillTree = document.querySelector('.skill-tree');
+const skillTreeConnectionLines = [...document.querySelectorAll('.skill-tree .tree-flow')];
+let skillTreeConnectionTimers = [];
+let skillTreeIsVisible = false;
+
+const clearSkillTreeConnectionLoop = () => {
+  skillTreeConnectionTimers.forEach((timer) => window.clearTimeout(timer));
+  skillTreeConnectionTimers = [];
+  skillTreeConnectionLines.forEach((line) => line.classList.remove('is-tracing'));
+};
+
+const runSkillTreeConnectionLoop = () => {
+  clearSkillTreeConnectionLoop();
+  if (heroMotionQuery.matches || !skillTreeIsVisible || !skillTreeConnectionLines.length) return;
+  void skillTree?.offsetWidth;
+
+  skillTreeConnectionLines.forEach((line, index) => {
+    skillTreeConnectionTimers.push(window.setTimeout(() => line.classList.add('is-tracing'), index * 1200));
+  });
+  skillTreeConnectionTimers.push(window.setTimeout(runSkillTreeConnectionLoop, 6500));
+};
+
+if (skillTree) {
+  const skillTreeObserver = new IntersectionObserver(([entry]) => {
+    skillTreeIsVisible = entry.isIntersecting;
+    if (skillTreeIsVisible) runSkillTreeConnectionLoop();
+    else clearSkillTreeConnectionLoop();
+  }, { threshold: 0.35 });
+  skillTreeObserver.observe(skillTree);
+  heroMotionQuery.addEventListener?.('change', runSkillTreeConnectionLoop);
+}
+
 const semanticMap = document.querySelector('.semantic-map');
 const semanticCaption = semanticMap?.querySelector('.semantic-caption');
 const semanticCaptionLabel = semanticCaption?.querySelector('span');
